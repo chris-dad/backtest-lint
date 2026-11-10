@@ -1,0 +1,577 @@
+{
+  "corpus_version": "1.2.7",
+  "generated": "2026-10-01",
+  "ssot": "this file (answer key); public export",
+  "conventions": {
+    "sample_ids": "CLN-### clean | LNT-### planted lint | PRF-### planted profile",
+    "neutral_files": "filenames and file contents carry NO rule ids or category hints; the mapping lives only in this file",
+    "mirror_pairs": "v1 (clean) and v2 (planted) share the same seed; detector MUST accept v1 and flag v2",
+    "verdict_schema": "expected = {caught: bool, rules: [rule ids]}",
+    "rule_ids": [
+      "lint.101",
+      "lint.102",
+      "lint.103",
+      "lint.104",
+      "lint.105",
+      "profile.201",
+      "profile.202",
+      "profile.203",
+      "profile.204"
+    ],
+    "verdict_tiers_on_real_data": "corpus expectations are deterministic because samples are constructed; on real data the profiler must emit graded verdicts: verified / suspicious / cannot-determine",
+    "tier_schema": "planted samples carry expected.tier: verified (deterministic fact from artifact/contract/reference) | suspicious (strong fingerprint, intent not provable from data alone) | cannot_determine (no pure-data fingerprint exists; PRF-201-03/04 are discipline samples - a pure-data detector returning cannot-determine for them is CORRECT, claiming detection would be fabrication)",
+    "observability_guarantee": "every planted disease is independently re-observed in its artifact at build time by tools/reference_detectors.py; every clean sample must be silent; the build fails otherwise",
+    "acceptance": "known-mode recall 100% on planted samples with tier verified|suspicious; 0 false positives on clean; cannot_determine samples assert honest non-detection"
+  },
+  "counts": {
+    "clean_strategies": 3,
+    "clean_data": 5,
+    "planted_lint": 15,
+    "planted_profile": 15,
+    "total": 38,
+    "planted_total": 30,
+    "planted_catchable_pure_data": 28
+  },
+  "samples": [
+    {
+      "id": "CLN-S01",
+      "path": "clean/strategies/strategy_case_A.py",
+      "module": "lint",
+      "rule": null,
+      "expected": {
+        "caught": false,
+        "rules": []
+      },
+      "desc": "SMA 金叉：signal.shift(1) 严格 T+1；断言含 NaN 门、仓位域、warmup 期零仓位"
+    },
+    {
+      "id": "CLN-S02",
+      "path": "clean/strategies/strategy_case_B.py",
+      "module": "lint",
+      "rule": null,
+      "expected": {
+        "caught": false,
+        "rules": []
+      },
+      "desc": "ROC 动量：信号比较 shift(20) 前价格且 position 再 shift(1)；断言含首 bar 平仓"
+    },
+    {
+      "id": "CLN-S03",
+      "path": "clean/strategies/strategy_case_C.py",
+      "module": "lint",
+      "rule": null,
+      "expected": {
+        "caught": false,
+        "rules": []
+      },
+      "desc": "唐奇安通道：通道 shift(1) 冻结在上一根，position 再 shift(1)；断言含 T+1 滞后不变量"
+    },
+    {
+      "id": "CLN-D01",
+      "path": "clean/data/data_case_01.csv",
+      "module": "profile",
+      "rule": null,
+      "expected": {
+        "caught": false,
+        "rules": []
+      },
+      "desc": "镜像 v1：raw 未复权 GBM + 分红事件表参照（对应 PRF-201-01，种子 201）"
+    },
+    {
+      "id": "CLN-D02",
+      "path": "clean/data/data_case_02.csv",
+      "module": "profile",
+      "rule": null,
+      "expected": {
+        "caught": false,
+        "rules": []
+      },
+      "desc": "镜像 v1：期权链严格截断在到期日（对应 PRF-202-01，种子 202）"
+    },
+    {
+      "id": "CLN-D03",
+      "path": "clean/data/data_case_03.csv",
+      "module": "profile",
+      "rule": null,
+      "expected": {
+        "caught": false,
+        "rules": []
+      },
+      "desc": "镜像 v1：时间戳严格单调递增（对应 PRF-203-01，种子 203）"
+    },
+    {
+      "id": "CLN-D04",
+      "path": "clean/data/data_case_04.csv",
+      "module": "profile",
+      "rule": null,
+      "expected": {
+        "caught": false,
+        "rules": []
+      },
+      "desc": "镜像 v1：raw 价格（对应 PRF-204-01，种子 204）"
+    },
+    {
+      "id": "CLN-D05",
+      "path": "clean/data/data_case_05.csv",
+      "module": "profile",
+      "rule": null,
+      "expected": {
+        "caught": false,
+        "rules": []
+      },
+      "desc": "纯合成 GBM 无事件无归一（干净由构造保证）"
+    },
+    {
+      "id": "LNT-101-01",
+      "path": "planted/lint/code_case_01.py",
+      "module": "lint",
+      "rule": "lint.101",
+      "variant": "baseline",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "lint.101"
+        ],
+        "tier": "verified"
+      },
+      "desc": "signal[t] 由 bar t close 算出，pnl 直接乘同 bar ret（close-to-close），同 bar 成交"
+    },
+    {
+      "id": "LNT-101-02",
+      "path": "planted/lint/code_case_02.py",
+      "module": "lint",
+      "rule": "lint.101",
+      "variant": "alias+function-wrap",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "lint.101"
+        ],
+        "tier": "verified"
+      },
+      "desc": "列名规范化后仍是 signal[t] × ret[t] 同 bar 对齐，入场判断封装进独立函数"
+    },
+    {
+      "id": "LNT-101-03",
+      "path": "planted/lint/code_case_03.py",
+      "module": "lint",
+      "rule": "lint.101",
+      "variant": "loop",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "lint.101"
+        ],
+        "tier": "verified"
+      },
+      "desc": "循环形态：bar i close 突破 bar i-1 high 决策，成交记在 bar i 收盘"
+    },
+    {
+      "id": "LNT-102-01",
+      "path": "planted/lint/code_case_04.py",
+      "module": "lint",
+      "rule": "lint.102",
+      "variant": "baseline",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "lint.102"
+        ],
+        "tier": "verified"
+      },
+      "desc": "position 未 shift 直接乘 open-to-open ret（bar t close 信息在 bar t open 之后才存在）"
+    },
+    {
+      "id": "LNT-102-02",
+      "path": "planted/lint/code_case_05.py",
+      "module": "lint",
+      "rule": "lint.102",
+      "variant": "zscore",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "lint.102"
+        ],
+        "tier": "verified"
+      },
+      "desc": "rolling z-score 未滞后，pnl 用同 bar open ret"
+    },
+    {
+      "id": "LNT-102-03",
+      "path": "planted/lint/code_case_06.py",
+      "module": "lint",
+      "rule": "lint.102",
+      "variant": "helper-wrap",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "lint.102"
+        ],
+        "tier": "verified"
+      },
+      "desc": "信号函数封装进 helper，pnl 仍与同 bar open ret 对齐"
+    },
+    {
+      "id": "LNT-103-01",
+      "path": "planted/lint/code_case_07.py",
+      "module": "lint",
+      "rule": "lint.103",
+      "variant": "baseline",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "lint.103"
+        ],
+        "tier": "verified"
+      },
+      "desc": "rolling(center=True) 生成趋势信号；pnl 已 shift(1)，居中窗口是唯一缺陷"
+    },
+    {
+      "id": "LNT-103-02",
+      "path": "planted/lint/code_case_08.py",
+      "module": "lint",
+      "rule": "lint.103",
+      "variant": "kwargs",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "lint.103"
+        ],
+        "tier": "verified"
+      },
+      "desc": "center=True 藏在 **kwargs 透传里；pnl 已 shift(1)，与 103-01/03 同构隔离"
+    },
+    {
+      "id": "LNT-103-03",
+      "path": "planted/lint/code_case_09.py",
+      "module": "lint",
+      "rule": "lint.103",
+      "variant": "apply",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "lint.103"
+        ],
+        "tier": "verified"
+      },
+      "desc": "rolling(center=True).apply 自定义函数；pnl 已 shift(1)"
+    },
+    {
+      "id": "LNT-104-01",
+      "path": "planted/lint/code_case_10.py",
+      "module": "lint",
+      "rule": "lint.104",
+      "variant": "baseline",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "lint.104"
+        ],
+        "tier": "verified"
+      },
+      "desc": "用序列末端值归一化全历史价格"
+    },
+    {
+      "id": "LNT-104-02",
+      "path": "planted/lint/code_case_11.py",
+      "module": "lint",
+      "rule": "lint.104",
+      "variant": "neg-shift",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "lint.104"
+        ],
+        "tier": "verified"
+      },
+      "desc": "shift(-5) 把 5 根之后的收盘价拉回当期做标签"
+    },
+    {
+      "id": "LNT-104-03",
+      "path": "planted/lint/code_case_12.py",
+      "module": "lint",
+      "rule": "lint.104",
+      "variant": "tail-stats",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "lint.104"
+        ],
+        "tier": "verified"
+      },
+      "desc": "序列末端标量与尾部窗口统计量回流到历史仓位缩放"
+    },
+    {
+      "id": "LNT-105-01",
+      "path": "planted/lint/code_case_13.py",
+      "module": "lint",
+      "rule": "lint.105",
+      "variant": "baseline",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "lint.105"
+        ],
+        "tier": "verified"
+      },
+      "desc": "回测主函数零断言：无 NaN 门、无守恒检查、无仓位域检查"
+    },
+    {
+      "id": "LNT-105-02",
+      "path": "planted/lint/code_case_14.py",
+      "module": "lint",
+      "rule": "lint.105",
+      "variant": "commented-out",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "lint.105"
+        ],
+        "tier": "verified"
+      },
+      "desc": "断言全部被注释，只剩 print 汇报"
+    },
+    {
+      "id": "LNT-105-03",
+      "path": "planted/lint/code_case_15.py",
+      "module": "lint",
+      "rule": "lint.105",
+      "variant": "vacuous",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "lint.105"
+        ],
+        "tier": "verified"
+      },
+      "desc": "断言形式上存在但恒真，无守恒语义"
+    },
+    {
+      "id": "PRF-201-01",
+      "path": "planted/profile/profile_case_01.csv",
+      "module": "profile",
+      "rule": "profile.201",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "profile.201"
+        ],
+        "tier": "verified"
+      },
+      "desc": "镜像 v2：同种子前复权倒推（老价格被累计分红 36.50 压低；v1 放行 / v2 报警）。tier=verified：有参照序列+事件表时可确定性判定"
+    },
+    {
+      "id": "PRF-201-02",
+      "path": "planted/profile/profile_case_02.csv",
+      "module": "profile",
+      "rule": "profile.201",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "profile.201"
+        ],
+        "tier": "suspicious",
+        "evidence_must_include": [
+          "down-cliff"
+        ]
+      },
+      "desc": "送股 1:2 原始价：除权日（构造中点）价格减半为下断崖，扣除拆分后的残差在当日噪声内（<5%），方向为下（DOWN），事件表被隐藏。tier=suspicious：断崖指纹强但数据本身无法证明意图"
+    },
+    {
+      "id": "PRF-201-03",
+      "path": "planted/profile/profile_case_03.csv",
+      "module": "profile",
+      "rule": "profile.201",
+      "expected": {
+        "caught": false,
+        "rules": [],
+        "tier": "cannot_determine",
+        "note": "discipline sample: no pure-data fingerprint exists; a pure-data detector MUST return cannot-determine. Catchable only with reference data (raw series / event table)."
+      },
+      "desc": "楔形累积减值（s0=200，价格保持为正）。tier=cannot_determine：无参照时与长期低漂移走势不可区分，诚实分级样本——纯数据检测器报'无法判定'才是正确行为"
+    },
+    {
+      "id": "PRF-201-04",
+      "path": "planted/profile/profile_case_04.csv",
+      "module": "profile",
+      "rule": "profile.201",
+      "expected": {
+        "caught": false,
+        "rules": [],
+        "tier": "cannot_determine",
+        "note": "discipline sample: the contract field claim 'raw' is unverifiable without reference; a pure-data detector MUST return cannot-determine."
+      },
+      "desc": "前复权序列 + 契约字段谎称 raw。tier=cannot_determine：契约声明无法用纯数据证伪，需参照数据交叉核对"
+    },
+    {
+      "id": "PRF-202-01",
+      "path": "planted/profile/profile_case_05.csv",
+      "module": "profile",
+      "rule": "profile.202",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "profile.202"
+        ],
+        "tier": "verified",
+        "evidence_must_include": [
+          "mark frozen at 5.456"
+        ]
+      },
+      "desc": "镜像 v2：到期后 90 天延续行（strike 80 到期日 ITM：mark 冻结在到期日打印值 5.456，非零已锁，冻结签名真实可观测），mark 冻结在到期日打印值、量 0、OI 僵死"
+    },
+    {
+      "id": "PRF-202-02",
+      "path": "planted/profile/profile_case_06.csv",
+      "module": "profile",
+      "rule": "profile.202",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "profile.202"
+        ],
+        "tier": "verified",
+        "evidence_must_include": [
+          "mark frozen at 3.0",
+          "iv frozen at 0.55"
+        ]
+      },
+      "desc": "到期后延续 60 行：mark 冻结在 3.0、IV 冻结在 0.55（均非零已锁）、OI 僵死为正（价格层面更难察觉的变体）"
+    },
+    {
+      "id": "PRF-202-03",
+      "path": "planted/profile/profile_case_07.csv",
+      "module": "profile",
+      "rule": "profile.202",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "profile.202"
+        ],
+        "tier": "verified",
+        "evidence_must_include": [
+          "nonzero volume"
+        ]
+      },
+      "desc": "到期后延续 30 行且带少量非零成交量（边界错位 + 伪装变体）"
+    },
+    {
+      "id": "PRF-202-04",
+      "path": "planted/profile/profile_case_08.csv",
+      "module": "profile",
+      "rule": "profile.202",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "profile.202"
+        ],
+        "tier": "verified",
+        "evidence_must_include": [
+          "settle frozen at 5378.02"
+        ]
+      },
+      "desc": "到期后延续 25 行：结算价冻结在到期日值 5378.02（非零已锁）、量 0"
+    },
+    {
+      "id": "PRF-203-01",
+      "path": "planted/profile/profile_case_09.csv",
+      "module": "profile",
+      "rule": "profile.203",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "profile.203"
+        ],
+        "tier": "verified"
+      },
+      "desc": "镜像 v2：12 对行乱序（行多重集合与 v1 相同，顺序被破坏）"
+    },
+    {
+      "id": "PRF-203-02",
+      "path": "planted/profile/profile_case_10.csv",
+      "module": "profile",
+      "rule": "profile.203",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "profile.203"
+        ],
+        "tier": "verified",
+        "evidence_must_include": [
+          "30 duplicate-by-value rows"
+        ]
+      },
+      "desc": "末尾追加 30 行重复时间戳（老日期复活）；按值计数重复（非相邻对），精确 token 已钉"
+    },
+    {
+      "id": "PRF-203-03",
+      "path": "planted/profile/profile_case_11.csv",
+      "module": "profile",
+      "rule": "profile.203",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "profile.203"
+        ],
+        "tier": "verified"
+      },
+      "desc": "naive UTC 与 +08:00 时间戳混用：按字符串排序落盘后，解析出的时刻在 9 个标记日各出现一次 2 小时回跳（构建器自检断言回跳数 == 9）"
+    },
+    {
+      "id": "PRF-204-01",
+      "path": "planted/profile/profile_case_12.csv",
+      "module": "profile",
+      "rule": "profile.204",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "profile.204"
+        ],
+        "tier": "suspicious"
+      },
+      "desc": "镜像 v2：价格列被全样本 z-score 归一（population std=1.000000；v1 放行 / v2 报警）"
+    },
+    {
+      "id": "PRF-204-02",
+      "path": "planted/profile/profile_case_13.csv",
+      "module": "profile",
+      "rule": "profile.204",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "profile.204"
+        ],
+        "tier": "suspicious"
+      },
+      "desc": "全样本 min-max：值域恰为 [0,1] 且 0.0/1.0 端点各精确出现一次（线索特征，判定需分级）"
+    },
+    {
+      "id": "PRF-204-03",
+      "path": "planted/profile/profile_case_14.csv",
+      "module": "profile",
+      "rule": "profile.204",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "profile.204"
+        ],
+        "tier": "verified"
+      },
+      "desc": "数据契约违规：序列带真实日期（止于 2026-06-18），meta 统计量声明 as_of=2027-12-31（超出数据末端 1.5 年）且 window=full_sample"
+    },
+    {
+      "id": "PRF-204-04",
+      "path": "planted/profile/profile_case_15.csv",
+      "module": "profile",
+      "rule": "profile.204",
+      "expected": {
+        "caught": true,
+        "rules": [
+          "profile.204"
+        ],
+        "tier": "suspicious"
+      },
+      "desc": "收益率列整体除以全样本 std：全列 std≈1（滚动波动率并不为常数；可检症状是列级统计量，判定需分级为可疑而非确定性证明）"
+    }
+  ]
+}

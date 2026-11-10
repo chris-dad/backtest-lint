@@ -1,0 +1,18 @@
+{
+  "case_id": "profile_case_14",
+  "seed": 2043,
+  "columns": [
+    "date",
+    "close"
+  ],
+  "rows": 900,
+  "generated": "2026-10-01",
+  "builder_version": "1.2.7",
+  "adjusted_price_mode": "raw",
+  "stats": {
+    "mean": 67.296618,
+    "std": null,
+    "as_of": "2027-12-31",
+    "window": "full_sample"
+  }
+}

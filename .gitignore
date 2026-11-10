@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Environments
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db
+._*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Local run artifacts (never publish research output from this repo)
+runs/
+out/
+*.local.json
+
+# Private research artifacts — must never enter this public repo.
+# The public tree is built from an allow-list; these patterns are a second line of defence.
+private-research/
+private-data/
+*.private/
+private/
+secrets/
+*.token
+.env
+.env.*

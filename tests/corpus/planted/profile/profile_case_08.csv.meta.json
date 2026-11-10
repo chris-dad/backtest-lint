@@ -1,0 +1,17 @@
+{
+  "case_id": "profile_case_08",
+  "seed": 2024,
+  "columns": [
+    "trade_date",
+    "instrument",
+    "expiry",
+    "settle",
+    "volume",
+    "open_interest",
+    "underlying"
+  ],
+  "rows": 506,
+  "generated": "2026-10-01",
+  "builder_version": "1.2.7",
+  "expiry": "2024-04-26"
+}

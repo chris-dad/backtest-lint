@@ -1,0 +1,12 @@
+{
+  "case_id": "data_case_05",
+  "seed": 999,
+  "columns": [
+    "t",
+    "close"
+  ],
+  "rows": 600,
+  "generated": "2026-10-01",
+  "builder_version": "1.2.7",
+  "adjusted_price_mode": "raw"
+}

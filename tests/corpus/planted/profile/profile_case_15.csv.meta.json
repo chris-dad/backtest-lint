@@ -1,0 +1,12 @@
+{
+  "case_id": "profile_case_15",
+  "seed": 2044,
+  "columns": [
+    "t",
+    "ret"
+  ],
+  "rows": 900,
+  "generated": "2026-10-01",
+  "builder_version": "1.2.7",
+  "column_semantics": "return"
+}

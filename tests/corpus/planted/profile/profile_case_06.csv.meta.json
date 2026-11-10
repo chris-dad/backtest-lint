@@ -1,0 +1,20 @@
+{
+  "case_id": "profile_case_06",
+  "seed": 2022,
+  "columns": [
+    "trade_date",
+    "instrument",
+    "expiry",
+    "strike",
+    "cp",
+    "mark",
+    "iv",
+    "volume",
+    "open_interest",
+    "underlying"
+  ],
+  "rows": 461,
+  "generated": "2026-10-01",
+  "builder_version": "1.2.7",
+  "expiry": "2025-03-07"
+}

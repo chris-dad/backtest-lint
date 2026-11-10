@@ -1,0 +1,11 @@
+{
+  "case_id": "profile_case_11",
+  "seed": 2033,
+  "columns": [
+    "timestamp",
+    "close"
+  ],
+  "rows": 309,
+  "generated": "2026-10-01",
+  "builder_version": "1.2.7"
+}
