@@ -67,7 +67,7 @@ python3 tools/profiler.py gate --corpus <dir>  # 20/20 expected
 ### `holdout_guard.py`
 
 ```bash
-python3 tools/holdout_guard.py selftest        # 123/123 expected
+python3 tools/holdout_guard.py selftest        # 124/124 expected
 python3 tools/holdout_guard.py --help          # runtime modes
 ```
 

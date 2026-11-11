@@ -407,7 +407,7 @@ def _by_asset_fingerprint(bas: dict, bas_stats: dict) -> dict:
     normalized stem + first/last date), sorted by raw filename, plus the
     sorted non-csv names. A normalized-stem-KEYED dict is FORBIDDEN here
     (round-20): two files normalizing to the same token (' ACME.csv' /
-    'ACME .csv' / 'B TC.csv' / 'ＡＣＭＥ.csv' vs 'ACME.csv') are TWO records -
+    'ACME .csv' / 'A CME.csv' / 'ＡＣＭＥ.csv' vs 'ACME.csv') are TWO records -
     a dict would collapse them last-write-wins and let a collidee that
     still feeds the date trigger escape the fingerprint. Any file
     added/removed/renamed/dated-differently after consumption changes this
@@ -1912,13 +1912,26 @@ def run_selftest() -> tuple[dict, int]:
                 f"ev={p['verdicts'][0]['evidence']} warn={p['warnings']}",
                 failures)
 
-        # R20-M1-C3 (round-20 repro 3): 'B TC.csv' (internal space).
+        # R20-M1-C3 (round-20 repro 3): 'A CME.csv' (internal space).
         fr12 = root / "r20-collision-intspace"
         _mk_run(fr12, _base_run(holdout={"start": "2026-06-01"}))
         _mk_equity(fr12, ["2026-01-01", "2026-05-31"])
         _mk_by_asset(fr12, "ACME", 30)
         mark_read(fr12, note="r20-c3")
-        _mk_by_asset(fr12, "ACME", 600, filename="B TC.csv")
+        collidee_name = "A CME.csv"
+        _mk_by_asset(fr12, "ACME", 600, filename=collidee_name)
+        # Precondition: the fixture must actually be a normalized-token
+        # collidee. Without this, a rename silently turns C3 into a plain
+        # "new file appeared" test and the collision branch stops being
+        # exercised at all (still green, but no longer the test it claims).
+        # It is bound to the same variable the fixture uses, so changing the
+        # fixture name alone makes this assertion fail.
+        n_asserts += 1
+        _expect(_norm_token(collidee_name.rsplit(".", 1)[0]) == _norm_token("ACME")
+                and _norm_token(collidee_name.rsplit(".", 1)[0]) != _norm_token("OTHER"),
+                f"R20-M1-C3 fixture {collidee_name!r} must normalize to "
+                f"{_norm_token('ACME')!r} (a collidee of 'ACME'), got "
+                f"{_norm_token(collidee_name.rsplit('.', 1)[0])!r}", failures)
         p, code = evaluate(fr12)
         n_asserts += 1
         _expect(code == EXIT_BLOCKED and p["holdout_read"] is False
@@ -1929,7 +1942,7 @@ def run_selftest() -> tuple[dict, int]:
                 and "consumed at" not in p["verdicts"][0]["evidence"]
                 and any("by_asset fingerprint changed since consumption"
                         in w for w in p["warnings"]),
-                f"R20-M1-C3 'B TC.csv' collidee must BLOCK via per-file "
+                f"R20-M1-C3 'A CME.csv' collidee must BLOCK via per-file "
                 f"fingerprint, got exit={code} read={p['holdout_read']} "
                 f"ev={p['verdicts'][0]['evidence']} warn={p['warnings']}",
                 failures)

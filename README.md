@@ -92,7 +92,7 @@ Checks the things that silently corrupt a backtest: calendar gaps, duplicate tim
 Embedded in the engine. Enforces that the holdout window is touched exactly once, that mirror unit tests pass (buyer P&L = −seller P&L for derivatives), and that settlement arithmetic is asserted at boundary cases (`S_T = 0`, `S_T = K`, `S_T = 2K`).
 
 ```bash
-python3 tools/holdout_guard.py selftest   # 123/123
+python3 tools/holdout_guard.py selftest   # 124/124
 ```
 
 ### 4. `research_kit/` — the luck quartet
@@ -128,7 +128,7 @@ python3 tools/lint.py check /path/to/your_strategy.py
 python3 tools/lint.py selftest                    # 30/30
 python3 tools/lint.py gate --corpus tests/corpus  # 18/18
 python3 tools/profiler.py gate --corpus tests/corpus  # 20/20
-python3 tools/holdout_guard.py selftest           # 123/123
+python3 tools/holdout_guard.py selftest           # 124/124
 python3 tools/research_kit/cli.py selftest        # 96/96
 ```
 
@@ -198,7 +198,7 @@ DEPLOY.md                 # install, CI, and agent integration
 |---|---|---|
 | lint | 0.1.1 | 18/18 corpus · 30/30 selftest · externally audited |
 | profiler | 0.7.1 | 20/20 corpus · 38-sample corpus · externally audited |
-| holdout_guard | 0.1.5 | 123/123 selftest |
+| holdout_guard | 0.1.5 | 124/124 selftest |
 | research_kit | 0.1.2 | 96/96 selftest |
 
 Each component passed an independent external audit gate before being published. Audit findings, including the ones that failed on first review, are reflected in the limitations section rather than erased.
