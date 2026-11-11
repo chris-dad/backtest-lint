@@ -135,12 +135,12 @@ jobs:
           PY
 ```
 
-`check` exits `0` even when it finds violations (findings are the product), so the wrapper above is what enforces the verdict. Verify the wrapper itself with a positive and a negative control before trusting it:
+`check` exits `0` even when it finds violations (findings are the product), so the wrapper above is what enforces the verdict. Both commands below therefore exit `0` — feed their reports to that wrapper and check *its* exit code instead:
 
 ```bash
-# Should exit 0 on clean code, 1 on planted code
-python3 tools/lint.py check tests/corpus/clean/strategies/ > /tmp/c.json
-python3 tools/lint.py check tests/corpus/planted/lint/ > /tmp/p.json
+python3 tools/lint.py check tests/corpus/clean/strategies/ > /tmp/c.json   # check: exit 0
+python3 tools/lint.py check tests/corpus/planted/lint/     > /tmp/p.json   # check: exit 0
+# then run the wrapper on /tmp/c.json (must exit 0) and on /tmp/p.json (must exit 1)
 ```
 
 ---
@@ -151,8 +151,8 @@ The tools were designed to be called by an agent as plain subprocesses. Requirem
 
 | Requirement | Status |
 |---|---|
-| Machine-readable output | JSON envelope on stdout, every command |
-| Stable exit codes | `0` / `1` / `2`, documented above |
+| Machine-readable output | JSON envelope on stdout — except `--help` (plain text) and argparse usage errors (stderr only). See §3. |
+| Stable exit codes | Per-tool, **not** uniform: `0` / `1` / `2`, plus `3` for a `profiler.py gate` infrastructure failure. See §3. |
 | No interactive prompts | None |
 | No hidden state | Reads only the paths you pass |
 | Deterministic | `selftest` and `gate` reproduce byte-identical JSON |

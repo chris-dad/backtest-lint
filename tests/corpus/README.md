@@ -43,7 +43,7 @@ python3 tools/build_corpus.py
 
 The generator is standard-library only, uses a fixed seed, and is byte-reproducible. A self-check failure aborts the build rather than emitting a partial corpus. Regenerating must not change any file in this directory under the same version; a corpus change is a version bump, not a rebuild.
 
-`expected_results.json` is written by that same run — it is never hand-edited, and it is the file the gates grade against. So the check is mechanical: rebuild into a copy and `diff -r` the two `tests/corpus/` trees; anything but an empty diff is a bug. This README is the only file here that is not generated.
+`expected_results.json` is written by that same run — it is never hand-edited, and it is the file the gates grade against. So the check is mechanical: rebuild in place and `git status` must be clean; or build into an empty directory and compare with `diff -r --exclude=README.md`, which must also be empty. This README is the only file here that is not generated, which is why a fresh build has nothing to compare it against.
 
 ## Why the corpus comes first
 
