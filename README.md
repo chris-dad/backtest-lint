@@ -198,12 +198,14 @@ DEPLOY.md                 # install, CI, and agent integration
 
 | Tool | Version | Acceptance |
 |---|---|---|
-| lint | 0.1.1 | 18/18 corpus · 30/30 selftest · externally audited |
-| profiler | 0.7.1 | 20/20 corpus · 38-sample corpus · externally audited |
+| lint | 0.1.1 | 18/18 corpus · 30/30 selftest |
+| profiler | 0.7.1 | 20/20 corpus |
 | holdout_guard | 0.1.5 | 124/124 selftest |
 | research_kit | 0.1.2 | 96/96 selftest |
 
-Each component passed an independent external audit gate before being published. Audit findings, including the ones that failed on first review, are reflected in the limitations section rather than erased.
+Before release this code was put through a written adversarial review by a reviewing agent that did not write it. The brief required re-deriving every number from raw evidence, running a negative control for each positive claim, and refusing to certify anything it could not reproduce.
+
+That is **not** a third-party audit, and no human auditor was involved: the reviewer ran on the same machine under the same owner, so its independence is bounded by that. Findings were either fixed outright or recorded in the limitations sections; the ones that failed on first review are named rather than erased.
 
 ---
 

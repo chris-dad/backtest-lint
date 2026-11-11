@@ -1,6 +1,6 @@
 # LINT-SPEC v0.1 — semantics of `tools/lint.py`
 
-- **Version**: 0.1.1 (externally audited; see §7)
+- **Version**: 0.1.1 (review history in §7)
 - **Exam**: 18 frozen lint samples in `tests/corpus/` (15 planted defects + 3 clean strategies), answer key `tests/corpus/expected_results.json` (module = `lint`)
 - **Implementation**: standard library only (`ast`, `json`, `argparse`) — zero third-party dependencies
 
@@ -89,6 +89,6 @@ See `DEPLOY.md` §5 for the three forms that are silently missed (limitations 7 
 | Version | Change |
 |---|---|
 | 0.1.0 | Initial delivery: five rules, 18/18 corpus, 20/20 selftest. |
-| 0.1.1 | External audit fixes. **M-1**: lag judgment moved from "shift on the definition suffix" to "every price read protected by `shift(k>=1)`" (`bar_t_cols`), fixing four false-positive T+1 forms and one missed conviction (`position.fillna(0)`). **m-1**: 102 evidence now names only the price columns actually read. `shift(0)` explicitly does not protect; helper lag via `return` suffix is recognised (with transitive local-variable expansion). 30/30 selftest. Limitations 7–9 disclosed after the audit. |
+| 0.1.1 | Review fixes. **M-1**: lag judgment moved from "shift on the definition suffix" to "every price read protected by `shift(k>=1)`" (`bar_t_cols`), fixing four false-positive T+1 forms and one missed conviction (`position.fillna(0)`). **m-1**: 102 evidence now names only the price columns actually read. `shift(0)` explicitly does not protect; helper lag via `return` suffix is recognised (with transitive local-variable expansion). 30/30 selftest. Limitations 7–9 disclosed after that review. |
 
-Each version passed an independent external audit before release. Audit findings that did not block release are recorded in §4 rather than removed.
+Each version was reviewed against a written adversarial brief before release, by a reviewing agent that did not write the code and had to re-derive its claims from raw evidence. That reviewer runs on the same machine under the same owner, so this is **not** a third-party audit. Findings that did not block release are recorded in §4 rather than removed.
