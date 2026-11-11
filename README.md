@@ -141,7 +141,7 @@ A `check` run on a clean strategy prints:
  "caught": false, "rules": [], "lint_version": "0.1.1"}
 ```
 
-Exit codes are stable and scriptable: `0` = ran, and the findings are the product; `1` = gate/selftest failed **or a holdout check blocked the load**; `2` = bad input (missing file, syntax error, bad argument). Meaning of `1` is per-tool — see the table in `DEPLOY.md` §3. Error envelopes are JSON on stdout, with two exceptions: `--help` prints plain text, and argparse usage errors go to stderr only.
+Exit codes are stable and scriptable: `0` = ran, and the findings are the product; `1` = gate/selftest failed **or a holdout check blocked the load**; `2` = bad input (missing file, syntax error, bad argument). Meaning of `1` is per-tool — see the table in `DEPLOY.md` §3. Error envelopes are JSON on stdout, with two exceptions: `--help` prints plain text (all four tools, exit `0`), and argparse usage errors are stderr-only in `lint`/`profiler` but also emit a JSON envelope on stdout in `guard`/`research_kit` — so do not parse stdout unconditionally on a non-zero exit.
 
 ---
 

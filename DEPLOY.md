@@ -94,7 +94,14 @@ python3 tools/research_kit/cli.py selftest     # 96/96 expected
 
 Never treat `1` as "gate failed" without checking which command produced it: for `holdout_guard check`, `1` is a **finding** (the holdout was touched), not a tool malfunction.
 
-Output is JSON on stdout. Two exceptions: `--help` prints plain text (exit 0, no envelope), and argparse usage errors (unknown subcommand, bad flag) are printed to **stderr only** — there is no JSON envelope on that path. No input shape produces a traceback.
+Output is JSON on stdout, with two exceptions — and the second one is **not uniform across the four tools**:
+
+- `--help` prints plain text on stdout, exit `0`, no envelope. This is the same in all four.
+- Argparse usage errors (unknown subcommand, bad flag) all exit `2`, but they split in two:
+  - `lint.py` and `profiler.py` let argparse handle it: usage goes to **stderr**, stdout stays **empty**.
+  - `holdout_guard.py` and `research_kit/cli.py` install their own error handler: usage goes to stderr **and** a JSON envelope goes to **stdout** — `{"tool": "holdout_guard", "guard_version": "0.1.5", "error": "invalid arguments (usage on stderr)"}` and `{"tool": "research_kit", "version": "0.1.2", "error": "invalid arguments (usage on stderr)"}` respectively. Note the version key differs too.
+
+So an agent that parses stdout unconditionally sees valid JSON from two tools and an empty stream from the other two on the very same mistake. Branch on the exit code first. No input shape produces a traceback.
 
 ---
 
@@ -151,7 +158,7 @@ The tools were designed to be called by an agent as plain subprocesses. Requirem
 
 | Requirement | Status |
 |---|---|
-| Machine-readable output | JSON envelope on stdout — except `--help` (plain text) and argparse usage errors (stderr only). See §3. |
+| Machine-readable output | JSON envelope on stdout — except `--help` (plain text, all four) and argparse usage errors, which are stderr-only in `lint`/`profiler` but emit JSON on stdout too in `guard`/`research_kit`. See §3. |
 | Stable exit codes | Per-tool, **not** uniform: `0` / `1` / `2`, plus `3` for a `profiler.py gate` infrastructure failure. See §3. |
 | No interactive prompts | None |
 | No hidden state | Reads only the paths you pass |
