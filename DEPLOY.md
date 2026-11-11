@@ -52,7 +52,7 @@ Shell variables are documentation convenience only — no tool reads `BL_ROOT`.
 ```bash
 python3 tools/lint.py check <file.py|dir>      # JSON findings
 python3 tools/lint.py gate --corpus <dir>      # 18/18 expected, exit 0 iff pass
-python3 tools/lint.py selftest                 # 31/31 expected
+python3 tools/lint.py selftest                 # 32/32 expected
 ```
 
 ### `profiler.py`
@@ -83,7 +83,8 @@ python3 tools/research_kit/cli.py selftest     # 96/96 expected
 | Command | `0` | `1` | `2` | `3` |
 |---|---|---|---|---|
 | `lint.py check` | ran; findings are the product | — | input error | — |
-| `lint.py gate` / `selftest` | all pass | at least one fail | input error | — |
+| `lint.py gate` | all pass | at least one fail | input error (bad corpus) | gate infrastructure failure |
+| `lint.py selftest` | all pass | at least one fail | — | — |
 | `profiler.py check` | ran; verdicts are the product | — | input error | — |
 | `profiler.py gate` | all pass | at least one fail | input error | gate infrastructure failure |
 | `holdout_guard.py check` | pass | **holdout exposure blocked the load** | structural error | — |
@@ -91,6 +92,8 @@ python3 tools/research_kit/cli.py selftest     # 96/96 expected
 | `holdout_guard.py selftest` | all pass | at least one fail | — | — |
 | `research_kit/cli.py check` | ran; verdicts are the product | — | malformed run folder / bad input | — |
 | `research_kit/cli.py selftest` | all pass | at least one fail | — | — |
+
+For both gates, `2` and `3` are separated on purpose: `2` means the corpus you handed over is unreadable or malformed, `3` means the tool raised while grading a corpus it accepted. An agent that retries `2` and escalates `3` behaves correctly; one that treats both as "my input is bad" will loop on its own bug. The JSON envelope carries `error_kind` (`input` or `internal_error`) so the distinction is machine-readable, not just a code to memorise. Error envelopes for `check` on a missing file carry `error_kind: input` too.
 
 Never treat `1` as "gate failed" without checking which command produced it: for `holdout_guard check`, `1` is a **finding** (the holdout was touched), not a tool malfunction.
 

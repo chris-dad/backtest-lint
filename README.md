@@ -65,7 +65,7 @@ Parses strategy source with `ast` and tracks a column-level data-flow graph. No 
 ```bash
 python3 tools/lint.py check strategy.py          # JSON findings
 python3 tools/lint.py gate --corpus tests/corpus # 18/18, exit 0 iff all pass
-python3 tools/lint.py selftest                   # 31/31
+python3 tools/lint.py selftest                   # 32/32
 ```
 
 | Rule | Detects |
@@ -127,7 +127,7 @@ cd backtest-lint
 python3 tools/lint.py check /path/to/your_strategy.py
 
 # Verify the toolchain itself
-python3 tools/lint.py selftest                    # 31/31
+python3 tools/lint.py selftest                    # 32/32
 python3 tools/lint.py gate --corpus tests/corpus  # 18/18
 python3 tools/profiler.py gate --corpus tests/corpus  # 20/20
 python3 tools/holdout_guard.py selftest           # 124/124
@@ -138,10 +138,10 @@ A `check` run on a clean strategy prints:
 
 ```json
 {"file": "strategy.py", "strategy_like": true, "findings": [],
- "caught": false, "rules": [], "lint_version": "0.1.2"}
+ "caught": false, "rules": [], "lint_version": "0.1.3"}
 ```
 
-Exit codes are stable and scriptable: `0` = ran, and the findings are the product; `1` = gate/selftest failed **or a holdout check blocked the load**; `2` = bad input (missing file, syntax error, bad argument). Meaning of `1` is per-tool — see the table in `DEPLOY.md` §3. Error envelopes are JSON on stdout, with two exceptions: `--help` prints plain text (all four tools, exit `0`), and argparse usage errors are stderr-only in `lint`/`profiler` but also emit a JSON envelope on stdout in `guard`/`research_kit` — so do not parse stdout unconditionally on a non-zero exit.
+Exit codes are stable and scriptable: `0` = ran, and the findings are the product; `1` = gate/selftest failed **or a holdout check blocked the load**; `2` = bad input (missing file, syntax error, bad argument); `3` = a gate hit an internal error while grading a corpus it had already accepted. Meaning of `1` is per-tool — see the table in `DEPLOY.md` §3. Error envelopes are JSON on stdout, with two exceptions: `--help` prints plain text (all four tools, exit `0`), and argparse usage errors are stderr-only in `lint`/`profiler` but also emit a JSON envelope on stdout in `guard`/`research_kit` — so do not parse stdout unconditionally on a non-zero exit.
 
 ---
 
@@ -198,7 +198,7 @@ DEPLOY.md                 # install, CI, and agent integration
 
 | Tool | Version | Acceptance |
 |---|---|---|
-| lint | 0.1.2 | 18/18 corpus · 31/31 selftest |
+| lint | 0.1.3 | 18/18 corpus · 32/32 selftest |
 | profiler | 0.7.1 | 20/20 corpus |
 | holdout_guard | 0.1.5 | 124/124 selftest |
 | research_kit | 0.1.2 | 96/96 selftest |

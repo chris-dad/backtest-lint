@@ -1,6 +1,6 @@
 # LINT-SPEC v0.1 — semantics of `tools/lint.py`
 
-- **Version**: 0.1.2 (review history in §7)
+- **Version**: 0.1.3 (review history in §7)
 - **Exam**: 18 frozen lint samples in `tests/corpus/` (15 planted defects + 3 clean strategies), answer key `tests/corpus/expected_results.json` (module = `lint`)
 - **Implementation**: standard library only (`ast`, `json`, `argparse`) — zero third-party dependencies
 
@@ -56,10 +56,10 @@ The corpus expects `verified` for all planted defects (they are constructed to b
 ```bash
 python3 tools/lint.py check <file.py|dir>        # JSON findings, exit 0 = normal
 python3 tools/lint.py gate --corpus tests/corpus # 18/18, exit 0 iff all pass
-python3 tools/lint.py selftest                   # 31/31 (27 inline positive/negative
+python3 tools/lint.py selftest                   # 32/32 (27 inline positive/negative
                                                  # probes incl. T+1 lag forms and
                                                  # evidence-content assertions,
-                                                 # + 3 CLI probes + gate control)
+                                                 # + 4 CLI probes + gate control)
 ```
 
 Exit convention: `0` = normal (findings are the product); `1` = gate/selftest failed; `2` = input error (missing file, syntax error, non-`.py`), with an error JSON envelope on stdout and no traceback.
@@ -91,5 +91,6 @@ See `DEPLOY.md` §5 for the three forms that are silently missed (limitations 7 
 | 0.1.0 | Initial delivery: five rules, 18/18 corpus, 20/20 selftest. |
 | 0.1.1 | Review fixes. **M-1**: lag judgment moved from "shift on the definition suffix" to "every price read protected by `shift(k>=1)`" (`bar_t_cols`), fixing four false-positive T+1 forms and one missed conviction (`position.fillna(0)`). **m-1**: 102 evidence now names only the price columns actually read. `shift(0)` explicitly does not protect; helper lag via `return` suffix is recognised (with transitive local-variable expansion). 30/30 selftest. Limitations 7–9 disclosed after that review. |
 | 0.1.2 | `gate` no longer escapes as a bare traceback on a corpus it cannot read: a corrupt or structurally invalid `expected_results.json` now prints a JSON error envelope on stdout and exits `2` (input error), instead of raising with an empty stdout. Detection rules unchanged; 18/18 corpus, 31/31 selftest. |
+| 0.1.3 | `gate` now separates a bad corpus from a bug in the linter: unreadable or malformed `expected_results.json` raises an explicit `GateInputError` and exits `2`; any other exception exits `3` with `error_kind: internal_error`. Before this, both were `2`, so a downstream that routes on the exit code would have treated a linter bug as its own bad input and retried forever. Both paths carry `error_kind`. 32/32 selftest (the new probe injects a `RuntimeError` into a copy of the tool and requires exit `3`). |
 
 This version was reviewed against a written adversarial brief, by a second agent on the same machine under the same owner — a review, not a third-party audit. Where that review found a limit rather than a defect, the limit is recorded in §4 instead of being removed.

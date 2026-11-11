@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""backtest-lint — lint.py v0.1.2 (Phase 6a)
+"""backtest-lint — lint.py v0.1.3 (Phase 6a)
 
 AST 静态检查：在回测跑起来之前拦截代码级作弊（考卷 = corpus v1.2.7 的
 18 个 lint 样本：15 植病 + 3 干净，答案卷 tests/corpus/expected_results.json）。
@@ -11,6 +11,10 @@ v0.1.1（Gate C M-1/m-1 修复）：滞后判定跟成交时点走（仓位表�
 v0.1.2：`gate` 对读不动/结构不对的语料不再抛裸 traceback，改为 stdout 发
 JSON 错误信封、exit 2（输入错误）。之前损坏的 expected_results.json 会
 以 Traceback 逃逸且 stdout 为空，正是 agent 无法分类的那种失败。
+
+v0.1.3：`gate` 把「语料读不动」与「工具自身抛错」分码——前者 exit 2
+（error_kind=input），后者 exit 3（error_kind=internal_error）。
+否则下游按退出码路由时，会把 linter 的 bug 当成自己的输入问题反复重试。
 
 规则语义（与答案卷 desc 一一对应）：
   lint.101  same-bar execution   —— bar t 信息做出的仓位 × bar t 的
@@ -60,7 +64,7 @@ import json
 import sys
 from pathlib import Path
 
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 PRICE_COLS = {"open", "high", "low", "close", "adjclose", "price"}
 POS_NAMES = ("position", "pos", "exposure", "weight", "holding")
 SIGNAL_HINTS = ("signal", "label", "entry")
@@ -755,18 +759,21 @@ def cmd_check(args):
     if not p.exists():
         print(json.dumps({"tool": "lint", "version": VERSION,
                           "command": "check",
+                          "error_kind": "input",
                           "error": f"path not found: {p}"}))
         return 2
     if p.is_file():
         if p.suffix != ".py":
             print(json.dumps({"tool": "lint", "version": VERSION,
                               "command": "check",
+                              "error_kind": "input",
                               "error": f"not a .py file: {p}"}))
             return 2
         r = _check_file(p)
         if "error" in r:
             print(json.dumps({"tool": "lint", "version": VERSION,
-                              "command": "check", "error": r["error"],
+                              "command": "check", "error_kind": "input",
+                              "error": r["error"],
                               "file": r["file"]}))
             return 2
         out = dict(r)
@@ -781,6 +788,7 @@ def cmd_check(args):
     if errors and not results:
         print(json.dumps({"tool": "lint", "version": VERSION,
                           "command": "check",
+                          "error_kind": "input",
                           "error": f"{len(errors)} file(s) failed to "
                                    f"parse",
                           "files": errors}))
@@ -796,29 +804,62 @@ def cmd_gate(args):
     exp_path = corpus / "expected_results.json"
     if not exp_path.exists():
         print(json.dumps({"tool": "lint", "version": VERSION,
-                          "command": "gate",
+                          "command": "gate", "error_kind": "input",
                           "error": f"expected_results.json not found: "
                                    f"{exp_path}"}))
         return 2
     try:
         return _run_gate(corpus, exp_path)
-    except Exception as e:  # gate mode honours the no-crash contract too.
-        # A corpus that cannot be graded is an input error, not a verdict, so
-        # this exits 2 and emits the same envelope shape as the not-found
-        # branch above: an agent parses one contract either way. Before this
-        # guard, a corrupt expected_results.json escaped as a bare traceback
-        # with an empty stdout, which is exactly the failure an agent cannot
-        # classify. The exception type is carried in the message so a genuine
-        # internal bug stays diagnosable instead of being read as bad input.
+    except GateInputError as e:
+        # The corpus is the caller's data: unreadable or malformed means exit 2,
+        # which the table in DEPLOY §3 already defines as an input error.
         print(json.dumps({"tool": "lint", "version": VERSION,
-                          "command": "gate",
-                          "error": f"corpus could not be graded: "
-                                   f"{type(e).__name__}: {e}"}))
+                          "command": "gate", "error_kind": "input",
+                          "error": str(e)}))
         return 2
+    except Exception as e:  # noqa: BLE001 - gate must still honour no-crash.
+        # Anything else came from this tool, not from the caller's data. Exit 3
+        # (not 2) so an agent routing on the exit code cannot mistake a bug in
+        # the linter for a problem with its own corpus. Same signal profiler's
+        # gate already uses for an infrastructure failure.
+        print(json.dumps({"tool": "lint", "version": VERSION,
+                          "command": "gate", "error_kind": "internal_error",
+                          "error": f"{type(e).__name__}: {e}"}))
+        return 3
+
+
+class GateInputError(Exception):
+    """The corpus itself is unreadable or structurally invalid."""
+
+
+def _load_expected(exp_path):
+    """Read and validate the answer key, raising GateInputError for bad data.
+
+    Validation is explicit and narrow on purpose. A blanket `except Exception`
+    around the whole gate would report a linter bug as a bad corpus, which is
+    how an agent ends up retrying its own input forever.
+    """
+    try:
+        raw = exp_path.read_text(encoding="utf-8")
+    except OSError as e:
+        raise GateInputError(f"expected_results.json unreadable: {e}") from None
+    try:
+        expected = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise GateInputError(f"expected_results.json is not valid JSON: {e}") from None
+    if not isinstance(expected, dict) or not isinstance(expected.get("samples"), list):
+        raise GateInputError("expected_results.json has no 'samples' list")
+    for s in expected["samples"]:
+        if (not isinstance(s, dict) or "path" not in s
+                or "expected" not in s or "id" not in s):
+            raise GateInputError(
+                "expected_results.json sample is missing id/path/expected: "
+                f"{s!r}"[:200])
+    return expected
 
 
 def _run_gate(corpus, exp_path):
-    expected = json.loads(exp_path.read_text(encoding="utf-8"))
+    expected = _load_expected(exp_path)
     cases, ok = [], 0
     for s in expected["samples"]:
         if s.get("module") != "lint":
@@ -1141,10 +1182,14 @@ def cmd_selftest(args):
         [sys.executable, str(Path(__file__).resolve()), "check", bad],
         capture_output=True, text=True)
     n += 1
-    if r.returncode != 2 or "error" not in r.stdout:
+    try:
+        env = json.loads(r.stdout)
+    except json.JSONDecodeError:
+        env = {}
+    if r.returncode != 2 or env.get("error_kind") != "input":
         failures.append(
             f"CLI syntax-error probe: exit {r.returncode}, "
-            f"stdout={r.stdout[:120]!r}")
+            f"kind={env.get('error_kind')!r}, stdout={r.stdout[:120]!r}")
     Path(bad).unlink(missing_ok=True)
     # CLI 反控：缺文件 → exit 2
     r = subprocess.run(
@@ -1152,10 +1197,14 @@ def cmd_selftest(args):
          "/nonexistent/lint_probe.py"],
         capture_output=True, text=True)
     n += 1
-    if r.returncode != 2 or "error" not in r.stdout:
+    try:
+        env = json.loads(r.stdout)
+    except json.JSONDecodeError:
+        env = {}
+    if r.returncode != 2 or env.get("error_kind") != "input":
         failures.append(
             f"CLI missing-file probe: exit {r.returncode}, "
-            f"stdout={r.stdout[:120]!r}")
+            f"kind={env.get('error_kind')!r}, stdout={r.stdout[:120]!r}")
     # corpus gate 正控
     corpus = Path(__file__).resolve().parent.parent / "tests" / "corpus"
     if corpus.exists():
@@ -1191,13 +1240,48 @@ def cmd_selftest(args):
         env = json.loads(r.stdout) if r.stdout.strip() else {}
     except json.JSONDecodeError:
         env = {}
-    if (r.returncode != 2 or "error" not in env
+    if (r.returncode != 2 or env.get("error_kind") != "input"
             or "Traceback" in r.stderr):
         failures.append(
             f"corrupt-corpus probe: exit {r.returncode}, "
+            f"kind={env.get('error_kind')!r}, "
             f"stdout={r.stdout[:120]!r}, "
             f"traceback={'Traceback' in r.stderr}")
     shutil.rmtree(tmpd, ignore_errors=True)
+    # CLI 反控：内部异常必须与坏输入分码。造一份自身副本，把 gate 的实现
+    # 调用替换成 raise，再喂**正常**语料：输入没问题，所以必须是 exit 3 +
+    # internal_error，而不是 2。没有这条，把两类归因合并回 exit 2 也不会变红。
+    src = Path(__file__).resolve().read_text(encoding="utf-8")
+    # Built by concatenation on purpose: written as one literal it would also
+    # match this very line and the count below would never be 1.
+    call = " " * 8 + "return _run_gate(corpus, " + "exp_path)"
+    if src.count(call) != 1:
+        n += 1
+        failures.append(
+            "internal-error probe: could not locate the gate call site; "
+            "the assertion needs updating with the code")
+    else:
+        inject = Path(tempfile.mkdtemp(prefix="lint-internal-"))
+        mod = inject / "lint_injected.py"
+        mod.write_text(
+            src.replace(call, "        raise RuntimeError('injected bug')"),
+            encoding="utf-8")
+        r = subprocess.run(
+            [sys.executable, str(mod), "gate", "--corpus", str(corpus)],
+            capture_output=True, text=True)
+        n += 1
+        try:
+            env = json.loads(r.stdout) if r.stdout.strip() else {}
+        except json.JSONDecodeError:
+            env = {}
+        if (r.returncode != 3
+                or env.get("error_kind") != "internal_error"
+                or "Traceback" in r.stderr):
+            failures.append(
+                f"internal-error probe: exit {r.returncode}, "
+                f"kind={env.get('error_kind')!r}, "
+                f"traceback={'Traceback' in r.stderr}")
+        shutil.rmtree(inject, ignore_errors=True)
     ok = not failures
     print(json.dumps({"tool": "lint", "version": VERSION,
                       "command": "selftest", "assertions": n,
