@@ -5,11 +5,11 @@ Version: only GUARD_VERSION below is authoritative - never restate it.
 Contract: RUN_FOLDER_CONTRACT.md (repo root) - CONTRACT_VERSION below must
 equal the version in that file's title (asserted in selftest, round-18 m-1).
 
-External audit history:
+Review history (Cursor: a separate agent from the implementer, not a third-party audit):
   round-17 (internal adversarial-verifier): PASS w/ 3 Major -> fixed in 0.1.1
-  round-18 (Cursor external): FAIL - 1 Blocker (B-1), 8 Major (M-1..M-8),
+  round-18 (Cursor review): FAIL - 1 Blocker (B-1), 8 Major (M-1..M-8),
   6 Minor (m-1..m-6) -> ALL fixed in 0.1.2.
-  round-19 (Cursor external re-verify): FAIL - 1 Blocker + 2 Major + 3 Minor
+  round-19 (Cursor review re-verify): FAIL - 1 Blocker + 2 Major + 3 Minor
   (all in the credit-granting path, none locked by the 90 assertions)
   -> ALL fixed in 0.1.3:
      B-1  credit now requires LOG evidence: state.snapshot, EVERY log
@@ -36,7 +36,7 @@ External audit history:
      plus (未升格, adopted): coin-name normalization now includes NFKC
      compatibility equivalence - fullwidth lookalike stems can no longer
      dodge a held-out coin match (contract section 3 documents this).
-  round-20 (Cursor external re-verify): FAIL - 1 Major (M-1 residual) +
+  round-20 (Cursor review re-verify): FAIL - 1 Major (M-1 residual) +
   Minor substring locks -> ALL fixed in 0.1.4:
      M-1r the fingerprint was a normalized-stem-KEYED dict: two files
           normalizing to the same token (e.g. ' ACME.csv' vs 'ACME.csv')
@@ -48,7 +48,7 @@ External audit history:
      minor the round-19 handoff's evidence/warning substrings are now
           themselves locked by net-new assertions (R20-L*), and the three
           collision filenames are locked (R20-M1-C1..C3).
-  round-21 (Cursor external re-verify): FAIL - 1 Major (M-1 residual:
+  round-21 (Cursor review re-verify): FAIL - 1 Major (M-1 residual:
   the blind spot moved from the fingerprint dict to by_asset_stats'
   Path.stem key) -> ALL fixed in 0.1.5:
      M-1r2 'ACME.csv' and 'ACME.CSV' share Path.stem 'ACME' but are TWO

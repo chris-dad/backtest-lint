@@ -217,7 +217,7 @@ In the upstream development workflow these are frozen and must not be modified b
 | `tests/corpus/expected_results.json` | The answer key. Changing it turns the exam into a rubber stamp. |
 | `tests/corpus/**` | Corpus is versioned as a unit; detector changes never edit samples. |
 | `tests/corpus/README.md` | **Declared exception**: this is an English rewrite of the upstream note. It is documentation only — no gate reads it — and it is the single non-generated file in that directory, so it is excluded from the "rebuild changes nothing" rule. |
-| `tools/profiler.py`, `tools/holdout_guard.py` | Frozen between audit gates in the upstream repo. |
+| `tools/profiler.py`, `tools/holdout_guard.py` | Frozen between review gates in the upstream repo. |
 
 If a validator fires on your file and the pattern is not one of the ten documented limitations, **fix the file**. Re-tuning a detector to pass your code is the failure mode this project exists to prevent.
 

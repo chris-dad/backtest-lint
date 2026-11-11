@@ -4,7 +4,7 @@
 
 A backtest is a claim about the future, assembled from code you wrote yourself and data you chose yourself. That is a structurally unreliable narrator. `backtest-lint` is a set of four independent gates that interrogate that narrator at four different layers — source code, input data, execution runtime, and statistical significance — before any number reaches a report.
 
-No third-party dependencies for the static checker. No cloud service. Everything runs locally and emits JSON.
+No third-party dependencies for the static checker. No cloud service, no telemetry. Everything runs locally. On the normal path the tools emit JSON; `--help` and usage errors are the exceptions, listed under exit codes in `DEPLOY.md` §3.
 
 ---
 
@@ -150,8 +150,8 @@ Exit codes are stable and scriptable: `0` = ran, and the findings are the produc
 - **Mechanical over judgmental.** If a check cannot be made deterministic, it is `suspicious`, not `verified`.
 - **Frozen exams.** Detector changes never touch `tests/corpus/`. The answer key is immutable within a corpus version.
 - **No silent passes.** Every tool reports what it looked at, what it skipped, and why.
-- **JSON everywhere.** Every CLI emits a machine-readable envelope. Designed to be called by CI, by an agent, or by another tool.
-- **Disclose the gaps.** Nine known limitations are documented in `docs/LINT-SPEC.md` §4, including asymmetric ones that make the tool look weaker.
+- **Machine-readable by default.** On the normal path every CLI emits a JSON envelope, so the tools can be driven by CI, by an agent, or by another tool. `--help` and usage errors are the exceptions — check the exit code before parsing stdout (`DEPLOY.md` §3).
+- **Disclose the gaps.** Ten known limitations are documented in `docs/LINT-SPEC.md` §4, including asymmetric ones that make the tool look weaker.
 
 ---
 
@@ -203,9 +203,9 @@ DEPLOY.md                 # install, CI, and agent integration
 | holdout_guard | 0.1.5 | 124/124 selftest |
 | research_kit | 0.1.2 | 96/96 selftest |
 
-Before release this code was put through a written adversarial review by a reviewing agent that did not write it. The brief required re-deriving every number from raw evidence, running a negative control for each positive claim, and refusing to certify anything it could not reproduce.
+**No audit claim.** The code was reviewed against a written adversarial brief by a second agent on the same machine under the same owner — a review, not a third-party audit, and no human auditor was involved. The brief asked for every number to be re-derived from raw evidence and a negative control behind each positive claim; nothing was to be certified that the reviewer could not reproduce.
 
-That is **not** a third-party audit, and no human auditor was involved: the reviewer ran on the same machine under the same owner, so its independence is bounded by that. Findings were either fixed outright or recorded in the limitations sections; the ones that failed on first review are named rather than erased.
+What survives is visible rather than asserted here: fixes sit in the commit history, and the detection limits the tools still have are listed in `docs/LINT-SPEC.md` §4 rather than left for you to discover.
 
 ---
 

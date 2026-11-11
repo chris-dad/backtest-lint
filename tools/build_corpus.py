@@ -2,7 +2,7 @@
 """backtest-lint corpus builder (Phase 1).
 Version: only CORPUS_VERSION below is authoritative - never restate it.
 
-v1.2.0 changelog (post-audit, 2026-09-30, implements HY review):
+v1.2.0 changelog (post-review, 2026-09-30, implements HY review):
   H1 ARCHITECTURE: observability is now a construction guarantee. Every
      planted sample is independently re-observed at build time by
      tools/reference_detectors.py (the disease must be measurable in the
@@ -21,7 +21,7 @@ v1.2.0 changelog (post-audit, 2026-09-30, implements HY review):
      fingerprint exists - PRF-201-03/04; a pure-data detector must return
      cannot-determine, and claiming detection there would be fabrication).
 
-v1.2.7 changelog (post-audit, 2026-10-01, closes Cursor round-8 note;
+v1.2.7 changelog (post-review, 2026-10-01, closes Cursor round-8 note;
         round-8 verdict: PASS, 0 blockers, 1 note):
   N3 203-02 jump lock SHARPENED to a shape lock: the round-7 pair
      ('>= 1 backward jump' file-wide + value-dups == 30) still admitted
@@ -32,7 +32,7 @@ v1.2.7 changelog (post-audit, 2026-10-01, closes Cursor round-8 note;
      duplicate stamps, 30 duplicate-by-value rows. Adjacent-copy /
      swap variants fail the build.
 
-v1.2.6 changelog (post-audit, 2026-09-30, closes Cursor round-7 notes;
+v1.2.6 changelog (post-review, 2026-09-30, closes Cursor round-7 notes;
         round-7 verdict: PASS, 0 blockers, 1 fix + 2 notes):
   F1 PRF-203-02 facts LOCKED, duplicates counted BY VALUE: the 30 copied
      rows are appended at the END, so they are not ADJACENT to their
@@ -51,7 +51,7 @@ v1.2.6 changelog (post-audit, 2026-09-30, closes Cursor round-7 notes;
      recall 100% = 28/28 (denominator = tier verified|suspicious only);
      28/30 is the catchable share of the planted set.
 
-v1.2.5 changelog (post-audit, 2026-09-30, closes Cursor round-6 notes;
+v1.2.5 changelog (post-review, 2026-09-30, closes Cursor round-6 notes;
         round-6 verdict: PASS, 0 blockers 0 fixes, 2 notes):
   R1 202-02 freeze tokens pinned to DERIVED values (mark 3.0, iv 0.55):
      det_202 now reports 'iv frozen at <v>'; answer key requires both
@@ -60,7 +60,7 @@ v1.2.5 changelog (post-audit, 2026-09-30, closes Cursor round-6 notes;
   R2 docstring repaired: the v1.2.3/v1.2.4 changelog blocks had been
      written with literal backslash-n sequences glued onto the v1.2.2
      title (introduced by the round-4/5 patch scripts themselves).
-v1.2.4 changelog (post-audit, 2026-09-30, closes Cursor round-5 notes;
+v1.2.4 changelog (post-review, 2026-09-30, closes Cursor round-5 notes;
         round-5 verdict: PASS, 0 blockers 0 fixes, 2 notes):
   R1 dead token revived: PRF-201-02 harness branch now asserts
      evidence_must_include (the down-cliff token was listed in the
@@ -68,7 +68,7 @@ v1.2.4 changelog (post-audit, 2026-09-30, closes Cursor round-5 notes;
      still passed). A stripped down-cliff now fails the build.
   R2 README sample-table row for PRF-201-02 aligned with the derived
      answer-key wording (no more 'exact halving' overclaim).
-v1.2.3 changelog (post-audit, 2026-09-30, closes Cursor round-4 notes):
+v1.2.3 changelog (post-review, 2026-09-30, closes Cursor round-4 notes):
   N1 futures freeze LOCKED: PRF-202-04 evidence token pins the exact
      derived settle (regression to 0.0 fails); verify() asserts the
      frozen settle is a single NONZERO value.
@@ -78,7 +78,7 @@ v1.2.3 changelog (post-audit, 2026-09-30, closes Cursor round-4 notes):
      stale '-log2 exact' claim); harness token 'down-cliff' + verify()
      asserts down-cliff residual <5% AND no up-cliff exists, so a
      multiply-by-2 construction fails the build.
-v1.2.2 changelog (post-audit, 2026-09-30, closes Cursor round-3 notes;
+v1.2.2 changelog (post-review, 2026-09-30, closes Cursor round-3 notes;
         round-3 verdict: PASS as Phase 2 gate, notes are drift-class only):
   D1 stale sentences killed at the root: builder/detector docstring
      titles no longer restate the version; superseded v1.1.0 changelog
@@ -87,7 +87,7 @@ v1.2.2 changelog (post-audit, 2026-09-30, closes Cursor round-3 notes;
      token pins the exact derived value (regression to 0.0 fails).
   D3 futures variant observed: det_202 gains a settle-frozen signature;
      PRF-202-04 answer key carries evidence_must_include token.
-v1.2.1 changelog (post-audit, 2026-09-30, fixes Cursor round-2 leftovers):
+v1.2.1 changelog (post-review, 2026-09-30, fixes Cursor round-2 leftovers):
   C1 date off-by-one: 204-03 end date now DERIVED (dates[-1] injected
      into desc) - comments/desc can no longer drift from the artifact.
   C2 verify() now asserts exactly 9 backward jumps (README claim was
@@ -100,7 +100,7 @@ v1.2.1 changelog (post-audit, 2026-09-30, fixes Cursor round-2 leftovers):
      post-expiry volume, frozen mark/IV vs moving underlying) so the
      hard 202 variants are actually observed, asserted via
      expected.evidence_must_include.
-v1.1.0 changelog (post-audit, 2026-09-29, fixes Cursor Phase-1 audit):
+v1.1.0 changelog (post-review, 2026-09-29, fixes Cursor Phase-1 review):
   B1 PRF-203-03: rebuilt so parsed timestamps actually jump backward
      (mixed naive-UTC and +08:00 renderings, string-sorted); builder
      self-check parses and asserts backward jumps [superseded: ==9 in v1.2.1].

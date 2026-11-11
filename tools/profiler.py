@@ -42,7 +42,7 @@ Gate wiring note (iron rule: the DETECTOR never reads the answer key):
   the same thing a human operator does. The profiler itself only sees csv +
   meta (+ an explicitly supplied reference), never the expected verdict.
 
-Check 201 dual-report design (external audit round 6): Mode A (reference
+Check 201 dual-report design (Cursor review round 6): Mode A (reference
 curve) and Mode B (split-residual cliff scan) run INDEPENDENTLY. A curve
 that matches its reference cannot launder a cliff hiding in the data, and
 a curve mismatch never suppresses the cliff scan - each emits its own
@@ -71,7 +71,7 @@ PRICE_COLS = ("close", "adj_close", "price")
 VOL_COLS = ("ret", "return", "returns")
 # A fallback (unnamed-position) column is only accepted as a time axis if
 # its NAME looks like one - raw price columns ("open") must not be treated
-# as timelines (external audit round 6, finding 5).
+# as timelines (Cursor review round 6, finding 5).
 TIME_NAME_RE = re.compile(r"^(t|ts|time|date|datetime|timestamp|idx|index|"
                           r"seq|no|num|stamp)$", re.IGNORECASE)
 
@@ -108,7 +108,7 @@ def _finite_all(vals) -> bool:
 
 def load_table(csv_path: Path) -> tuple[list[str], list[dict]]:
     """Return (column_names, rows-as-dicts). utf-8-sig: a UTF-8 BOM must not
-    rename the first column (external audit round 7, finding 7). Raises
+    rename the first column (Cursor review round 7, finding 7). Raises
     ValueError on an empty file, a ragged row, or DUPLICATE column names -
     dict(zip()) would silently keep only the last duplicate and every later
     check would run on the surviving column (finding 10)."""
@@ -121,7 +121,7 @@ def load_table(csv_path: Path) -> tuple[list[str], list[dict]]:
         dupes = {c for c in cols if cols.count(c) > 1}
         # Case-colliding headers ("Close" + "close") are not exact dupes,
         # but _col folds case - a cliff living only in "Close" would be
-        # invisible behind the surviving lowercase column (external audit
+        # invisible behind the surviving lowercase column (Cursor review
         # round 8, finding 8). Reject both kinds.
         fold: set[str] = set()
         folded_dupes: set[str] = set()
@@ -147,7 +147,7 @@ def load_table(csv_path: Path) -> tuple[list[str], list[dict]]:
 
 def _col(columns: list[str], *names: str) -> str | None:
     """First matching column name, case-insensitive. Returns the CSV's
-    ACTUAL spelling - callers must index rows with it (external audit
+    ACTUAL spelling - callers must index rows with it (Cursor review
     round 6, finding 8: evidence loops that hardcoded lowercase broke on
     'Volume'-style headers)."""
     lower = {c.lower(): c for c in columns}
@@ -159,7 +159,7 @@ def _col(columns: list[str], *names: str) -> str | None:
 
 def _time_col(columns: list[str]) -> str | None:
     """Single source of truth for time-axis recognition, used by checks
-    202/203/204 alike (external audit round 7, finding 5: per-check
+    202/203/204 alike (Cursor review round 7, finding 5: per-check
     divergence made the same file land on different axes or none). A
     designated name from TIME_COLS wins; otherwise ANY column whose name
     matches TIME_NAME_RE is accepted - including position 0 or not."""
@@ -191,9 +191,9 @@ def _stamp_utc(raw) -> datetime:
     ISO datetime (any offset - normalized to UTC), and numeric Unix epochs
     (10-13 digit seconds/milliseconds, integral or decimal - exchange
     dumps print '1700000000.0'; the decimal form used to be rejected by
-    the integer-only regex and silently skipped as unparseable, external
-    audit round 8, finding 3).
-    INPUT PRECONDITION (external audit round 9, real-data traps): the
+    the integer-only regex and silently skipped as unparseable, Cursor
+    review round 8, finding 3).
+    INPUT PRECONDITION (Cursor review round 9, real-data traps): the
     10-to-13-digit rule is a contract with the data supplier. A COMPACT
     stamp like 2024061512 (YYYYMMDDHH) also matches it and parses as a
     nonsense epoch (2034-02-20) - vendor files using compact stamps must
@@ -211,7 +211,7 @@ def _stamp_utc(raw) -> datetime:
 
 
 def _coerce_numeric(rows: list[dict], col: str) -> tuple[list[float], int]:
-    """Cell-by-cell float coercion (external audit round 8, finding 7):
+    """Cell-by-cell float coercion (Cursor review round 8, finding 7):
     a single non-numeric cell must not abort the whole column - it becomes
     a non-finite value that joins the pairwise skip, and its count is
     reported in the evidence instead of being raised to the caller."""
@@ -241,7 +241,7 @@ def _levels_partial_sums(amounts: list[float], targets: list[float]) -> bool:
     events {1,1,1} with the perfect curve 3/2/1/0 was called
     inconsistent). The weak 201 convention used to accept plateau heights
     that are no partial sum of the amounts at all (diff 3/2.5/0 against
-    events {1,2}: 2.5 is unreachable in any ordering) - external audit
+    events {1,2}: 2.5 is unreachable in any ordering) - Cursor review
     round 8, finding 1. Exhaustive DFS over used-amount masks; callers
     bound the event count (16) so the state space stays finite."""
     n = len(amounts)
@@ -270,7 +270,7 @@ def _levels_partial_sums(amounts: list[float], targets: list[float]) -> bool:
 def _cliff_scan(px: list[float]) -> dict | None:
     """Mode B: scan EVERY adjacent POSITIVE-price pair (a non-positive
     or non-finite price kills only its own ratios, never the whole scan -
-    external audit round 7, finding 4: one trailing 0 used to drop the
+    Cursor review round 7, finding 4: one trailing 0 used to drop the
     entire scan and hide a visible 1:2 cliff; red-team round 8, F1: an
     underflowed ratio 5e-324/1e300 -> 0.0 used to crash math.log and the
     whole run) for a move consistent with an integer split
@@ -352,7 +352,7 @@ def check_201(columns: list[str], rows: list[dict], meta: dict,
     # Mode A first (kept first for verdict-order stability), on the one
     # declared price column. NO fall-through to columns[-1]: without a
     # declared price name, Mode A could "verify" a volume or last-price
-    # column against a reference built from anything (external audit
+    # column against a reference built from anything (Cursor review
     # round 9, finding 1) - honest cannot instead.
     if reference is not None and dividend_events is not None:
         # The SUSPECT of a backcast check is the ADJUSTED series - priority
@@ -429,7 +429,7 @@ def check_201(columns: list[str], rows: list[dict], meta: dict,
 def _norm_col(name: str) -> str:
     """Normalize a column name for semantic matching: lowercase, ALL
     non-alphanumerics removed. 'Adj Close', 'adj.close', 'adj-close',
-    'adj_close' AND 'AdjClose' all normalize to adjclose (external audit
+    'adj_close' AND 'AdjClose' all normalize to adjclose (Cursor review
     round 9, finding 1: the exact allowlist made Yahoo's 'Adj Close'
     header invisible; round 10, finding 2: underscore-collapsing still
     hid the separator-free 'AdjClose' spelling)."""
@@ -457,7 +457,7 @@ def _cal_date(raw) -> date:
     cross-midnight offsets onto the wrong day and rejects honest backcasts
     (internal red-team round 7, N3). Non-ISO row stamps (Unix epochs) fall
     back to the UTC-normalized instant's date so a date-anchored event
-    table works on epoch-stamped rows too (external audit round 9,
+    table works on epoch-stamped rows too (Cursor review round 9,
     finding 6: checks 202/203/204 already parsed those stamps)."""
     s = str(raw).strip()
     try:
@@ -640,7 +640,7 @@ def _mode_a_201(px: list[float], pcol: str, columns: list[str],
 
         if dual_events:
             # Dual-anchor events must agree with themselves (red-team
-            # round 11 follow-up; external audit round 9, finding 7: the
+            # round 11 follow-up; Cursor review round 9, finding 7: the
             # position anchor silently won and a disagreeing ex_date was
             # never checked). Verify BOTH readings of the table: dual
             # events as position-anchored, and as date-anchored.
@@ -760,7 +760,7 @@ def _mode_a_201(px: list[float], pcol: str, columns: list[str],
                         f"exhaustive permutation-verification bound (16) - "
                         f"the weak convention cannot establish verified")
     amounts = [float(e["amount"]) for e in dividend_events]
-    # Step-height consistency (external audit round 8, finding 1; red-team
+    # Step-height consistency (Cursor review round 8, finding 1; red-team
     # round 11, R9-F3): every intermediate plateau level L must satisfy
     # total - L = (sum of already-applied events) - and those running sums,
     # taken ASCENDING, must be prefix sums of ONE single ordering of the
@@ -810,7 +810,7 @@ def check_202(columns: list[str], rows: list[dict], meta: dict) -> list[dict]:
     """profile.202 僵尸合约: any row whose timestamp INSTANT falls after the
     contractual expiry is a zombie BY DEFINITION -> verified. Returns a
     LIST of verdicts: a symbol self-inconsistency no longer REPLACES the
-    zombie scan (external audit round 9, finding 5 - an early return hid
+    zombie scan (Cursor review round 9, finding 5 - an early return hid
     the post-expiry row count and the nonzero-volume signature behind the
     symbol verdict); both facts are emitted. The expiry
     itself is parsed like any stamp: a full timestamp (any offset) is
@@ -820,7 +820,7 @@ def check_202(columns: list[str], rows: list[dict], meta: dict) -> list[dict]:
     instant is never consulted, because converting first made an 8pm
     US-Eastern stamp on expiry day cross the next UTC midnight and verify
     as a zombie, and certified the next venue-local morning clean
-    (external audit round 10, finding 1; epoch-stamped rows fall back to
+    (Cursor review round 10, finding 1; epoch-stamped rows fall back to
     the UTC date). INPUT PRECONDITION (red-team round 15, N-1): the
     wall-clock reading assumes stamps are written in the venue's LOCAL
     wall clock - a Zulu-written stamp (Z or +00:00 suffix) has no venue
@@ -909,7 +909,7 @@ def check_202(columns: list[str], rows: list[dict], meta: dict) -> list[dict]:
                 # 8pm US-Eastern stamp on expiry day cross the next UTC
                 # midnight and verify as a zombie - and certified the next
                 # venue-local morning clean while its UTC instant was
-                # still the previous UTC date (external audit round 10,
+                # still the previous UTC date (Cursor review round 10,
                 # finding 1). The symbol check already compares
                 # wall-clock dates; the zombie cutoff must too.
                 sdate = _cal_date(r[tcol])
@@ -999,14 +999,14 @@ def check_203(columns: list[str], rows: list[dict], meta: dict) -> dict:
     adjacent to their originals - corpus round-7 lesson). Every stamp is
     parsed with _stamp_utc: MIXED epoch units (seconds vs milliseconds)
     are therefore compared as UTC instants - an order violation, not a
-    clean numeric timeline (external audit round 8, finding 2). A file
+    clean numeric timeline (Cursor review round 8, finding 2). A file
     mixing parseable and unparseable stamps is itself a verified defect,
     AND the order facts of the parseable subset are reported in the SAME
     verdict (round 8, finding 10: the mixed-format note used to replace
     a real backward jump). A pure NUMERIC timeline (integer/float row
     index - values too small to be epochs) is a legitimate time axis
     ONLY for a designated/named time column - raw price columns are never
-    timelines (external audit round 6, finding 5)."""
+    timelines (Cursor review round 6, finding 5)."""
     rule = "profile.203"
     if not rows:
         return _verdict(rule, False, TIER_CANNOT, "no rows")
@@ -1058,7 +1058,7 @@ def check_203(columns: list[str], rows: list[dict], meta: dict) -> dict:
         return _verdict(rule, False, TIER_VERIFIED, "monotonic, no duplicates")
 
     # Nothing parses as a stamp -> numeric index timeline? Cell-by-cell
-    # coercion (external audit round 9, finding 3): one non-numeric cell
+    # coercion (Cursor review round 9, finding 3): one non-numeric cell
     # must not drop a real backward jump - order facts are computed on
     # the finite numeric subset and reported in the SAME verdict as the
     # skipped-cell count (the ISO mixed path already keeps both facts).
@@ -1116,7 +1116,7 @@ def check_204(columns: list[str], rows: list[dict], meta: dict) -> list[dict]:
     Exact centering alone (mean precisely ~0 relative to the column's own
     std) is the same measure-zero fingerprint. EVERY fully-numeric finite
     column is tested - a leaked ret column beside a raw close column must
-    not hide behind column priority (external audit round 6, finding 10).
+    not hide behind column priority (Cursor review round 6, finding 10).
     All identity branches require n >= 30. LOW-CARDINALITY GUARDS: every
     identity branch requires >= max(10, n/2) distinct values (round 9,
     finding 4: the old 5-distinct floors let a designed 5-level value set
@@ -1144,7 +1144,7 @@ def check_204(columns: list[str], rows: list[dict], meta: dict) -> list[dict]:
     # MAX parsed stamp date, and as_of is UTC-normalized exactly like the
     # row stamps - a +09:00 as_of whose UTC instant lands inside the sample
     # must not fabricate a violation, and a mirror-shaped one must not be
-    # missed (external audit round 7, finding 3).
+    # missed (Cursor review round 7, finding 3).
     stats = meta.get("stats") or {}
     as_of = stats.get("as_of")
     if as_of:
@@ -1203,7 +1203,7 @@ def check_204(columns: list[str], rows: list[dict], meta: dict) -> list[dict]:
             # symbols, strings). It can never carry a moment identity, and
             # listing it as "skipped" claimed absence was not established
             # over a column that was never a fingerprint candidate - which
-            # made a clean date+price file uncertifiable (external audit
+            # made a clean date+price file uncertifiable (Cursor review
             # round 10, finding 4). Silent skip: nothing numeric to scan.
             nonnumeric += 1
             continue
@@ -1259,7 +1259,7 @@ def check_204(columns: list[str], rows: list[dict], meta: dict) -> list[dict]:
                 and abs(sd - ddof1_sd) < 1e-6):
             # A z-score is CENTERED by definition: without the mean gate an
             # uncentered column that happens to carry sample-std 1 would be
-            # called a z-score (external audit round 7, finding 9).
+            # called a z-score (Cursor review round 7, finding 9).
             out.append(_verdict(rule, True, TIER_SUSPICIOUS,
                                 f"column '{cname}': centered (mean {mu:.2e}) "
                                 f"with population std exactly {sd:.9f} = "
