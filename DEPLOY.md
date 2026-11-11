@@ -101,7 +101,9 @@ Output is JSON on stdout, with two exceptions — and the second one is **not un
   - `lint.py` and `profiler.py` let argparse handle it: usage goes to **stderr**, stdout stays **empty**.
   - `holdout_guard.py` and `research_kit/cli.py` install their own error handler: usage goes to stderr **and** a JSON envelope goes to **stdout** — `{"tool": "holdout_guard", "guard_version": "0.1.5", "error": "invalid arguments (usage on stderr)"}` and `{"tool": "research_kit", "version": "0.1.2", "error": "invalid arguments (usage on stderr)"}` respectively. Note the version key differs too.
 
-So an agent that parses stdout unconditionally sees valid JSON from two tools and an empty stream from the other two on the very same mistake. Branch on the exit code first. No input shape produces a traceback.
+So an agent that parses stdout unconditionally sees valid JSON from two tools and an empty stream from the other two on the very same mistake. Branch on the exit code first.
+
+Failures on these paths are reported as JSON, not raised. That was not universally true until this guard: `lint.py gate` on a corrupt `expected_results.json` escaped as a traceback with an empty stdout, and now exits `2` with an envelope. If you find an input that still produces a traceback, treat it as a bug and report it — not as documented behaviour.
 
 ---
 

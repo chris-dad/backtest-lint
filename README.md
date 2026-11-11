@@ -138,7 +138,7 @@ A `check` run on a clean strategy prints:
 
 ```json
 {"file": "strategy.py", "strategy_like": true, "findings": [],
- "caught": false, "rules": [], "lint_version": "0.1.1"}
+ "caught": false, "rules": [], "lint_version": "0.1.2"}
 ```
 
 Exit codes are stable and scriptable: `0` = ran, and the findings are the product; `1` = gate/selftest failed **or a holdout check blocked the load**; `2` = bad input (missing file, syntax error, bad argument). Meaning of `1` is per-tool — see the table in `DEPLOY.md` §3. Error envelopes are JSON on stdout, with two exceptions: `--help` prints plain text (all four tools, exit `0`), and argparse usage errors are stderr-only in `lint`/`profiler` but also emit a JSON envelope on stdout in `guard`/`research_kit` — so do not parse stdout unconditionally on a non-zero exit.
@@ -198,12 +198,12 @@ DEPLOY.md                 # install, CI, and agent integration
 
 | Tool | Version | Acceptance |
 |---|---|---|
-| lint | 0.1.1 | 18/18 corpus · 30/30 selftest |
+| lint | 0.1.2 | 18/18 corpus · 30/30 selftest |
 | profiler | 0.7.1 | 20/20 corpus |
 | holdout_guard | 0.1.5 | 124/124 selftest |
 | research_kit | 0.1.2 | 96/96 selftest |
 
-**No audit claim.** The code was reviewed against a written adversarial brief by a second agent on the same machine under the same owner — a review, not a third-party audit, and no human auditor was involved. The brief asked for every number to be re-derived from raw evidence and a negative control behind each positive claim; nothing was to be certified that the reviewer could not reproduce.
+**No audit claim.** The code was reviewed against a written adversarial brief by a second agent on the same machine under the same owner — a review, not a third-party audit. The brief asked for every number to be re-derived from raw evidence and a negative control behind each positive claim; nothing was to be certified that the reviewer could not reproduce.
 
 What survives is visible rather than asserted here: fixes sit in the commit history, and the detection limits the tools still have are listed in `docs/LINT-SPEC.md` §4 rather than left for you to discover.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""backtest-lint — lint.py v0.1.1 (Phase 6a)
+"""backtest-lint — lint.py v0.1.2 (Phase 6a)
 
 AST 静态检查：在回测跑起来之前拦截代码级作弊（考卷 = corpus v1.2.7 的
 18 个 lint 样本：15 植病 + 3 干净，答案卷 tests/corpus/expected_results.json）。
@@ -7,6 +7,10 @@ AST 静态检查：在回测跑起来之前拦截代码级作弊（考卷 = corp
 v0.1.1（Gate C M-1/m-1 修复）：滞后判定跟成交时点走（仓位表达式内所有
 价格读被 shift(k>=1) 挡住即 T+1 干净，shift 位置不限）；102 evidence
 只陈述仓位侧实际读到的 bar-t 价格列。
+
+v0.1.2：`gate` 对读不动/结构不对的语料不再抛裸 traceback，改为 stdout 发
+JSON 错误信封、exit 2（输入错误）。之前损坏的 expected_results.json 会
+以 Traceback 逃逸且 stdout 为空，正是 agent 无法分类的那种失败。
 
 规则语义（与答案卷 desc 一一对应）：
   lint.101  same-bar execution   —— bar t 信息做出的仓位 × bar t 的
@@ -56,7 +60,7 @@ import json
 import sys
 from pathlib import Path
 
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 PRICE_COLS = {"open", "high", "low", "close", "adjclose", "price"}
 POS_NAMES = ("position", "pos", "exposure", "weight", "holding")
 SIGNAL_HINTS = ("signal", "label", "entry")
@@ -796,6 +800,24 @@ def cmd_gate(args):
                           "error": f"expected_results.json not found: "
                                    f"{exp_path}"}))
         return 2
+    try:
+        return _run_gate(corpus, exp_path)
+    except Exception as e:  # gate mode honours the no-crash contract too.
+        # A corpus that cannot be graded is an input error, not a verdict, so
+        # this exits 2 and emits the same envelope shape as the not-found
+        # branch above: an agent parses one contract either way. Before this
+        # guard, a corrupt expected_results.json escaped as a bare traceback
+        # with an empty stdout, which is exactly the failure an agent cannot
+        # classify. The exception type is carried in the message so a genuine
+        # internal bug stays diagnosable instead of being read as bad input.
+        print(json.dumps({"tool": "lint", "version": VERSION,
+                          "command": "gate",
+                          "error": f"corpus could not be graded: "
+                                   f"{type(e).__name__}: {e}"}))
+        return 2
+
+
+def _run_gate(corpus, exp_path):
     expected = json.loads(exp_path.read_text(encoding="utf-8"))
     cases, ok = [], 0
     for s in expected["samples"]:
