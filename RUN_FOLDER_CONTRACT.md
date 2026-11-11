@@ -11,7 +11,7 @@
 | `equity.csv` | ✅ | Daily rows: `date`, `strategy_net`, `strategy_gross`, `benchmark`. Equity marked to market every day (not only on close), starting at 1.0. |
 | `run.json` | ✅ | Calendar, cost assumptions, data source, period, benchmark name, holdout config, `tried_variants` count (see §2). **A missing `calendar` field is a structural error — the toolchain refuses to guess a calendar.** |
 | `trades.csv` | trade-type lanes | One row per trade: instrument, side, entry_time, exit_time, net_return. |
-| `exposure.csv` | optional | Daily gross exposure (0 = flat, 1 = fully invested). `timing_shuffle` depends on this file or on a derivation from `trades.csv`. |
+| `exposure.csv` | required for `timing_shuffle` | Daily gross exposure (0 = flat, 1 = fully invested). **`timing_shuffle` needs this file.** A derivation from `trades.csv` is declared upstream but **not implemented here**: a trades-only run folder returns `cannot_run` for that test — it does not pass, and it does not fail. |
 | `by_asset/<name>.csv` | multi-asset lanes | Same columns as `equity.csv`, one file per instrument. |
 | `guard_state.json` | written by guard | Last-read state (tool-generated; engines must not write it). |
 | `guard_log.json` | written by guard | Append-only read-event log (tool-generated; engines must not write it). |
@@ -30,8 +30,10 @@
   "holdout": null,                 // tri-state: null | {"start": "YYYY-MM-DD"} | {"coins": ["X","Y"]}
                                    //   start and coins together = exit 2 (structural)
                                    //   coins must be a non-empty array of strings, else exit 2
-  "tried_variants": 0              // required: total variants tried on this signal to date,
-                                   // including earlier research
+  "tried_variants": 1              // required: integer >= 1 — total variants tried on this
+                                   // signal to date, including earlier research. 0 is
+                                   // rejected at consumption time (exit 2): a search that
+                                   // tried nothing has nothing to haircut.
 }
 ```
 
@@ -59,7 +61,7 @@
   1. `guard_state.json` has `holdout_read` as a **JSON boolean `true`** (the string `"true"` or the number `1` does not count);
   2. `guard_log.json` contains the corresponding `holdout_read` event — **state without a log is unread** (state alone is not evidence, even when it looks like a matching snapshot);
   3. **four-way agreement**: `state.snapshot` = the `snapshot` of **every** `holdout_read` event in the log = the current `run.json` holdout object = the current first/last equity dates. Any mismatch invalidates the credit;
-  4. **`by_asset` fingerprint agreement**: the mark-read snapshot records one entry per scanned CSV path — `assets: [{file, stem, first, last}, …]` sorted by original filename; derived names must never be used as record keys. Files whose normalised stems collide, and same-stem files differing only in extension case, are separate records with independent date spans. Scans, fingerprints and parking statistics all work per CSV path (derived names are for matching only). The fingerprint is a per-file set: adding, deleting or renaming any `by_asset` file after consumption — or changing any file's date span — invalidates the credit.
+  4. **`by_asset` fingerprint agreement**: the mark-read snapshot records one entry per scanned CSV path — `assets: [{file, stem, first, last}, …]` sorted by original filename; derived names must never be used as record keys. Files whose normalised stems collide, and same-stem files differing only in extension case, are separate records with independent date spans. Scans, fingerprints and parking statistics all work per CSV path (derived names are for matching only). The fingerprint is a per-file set: adding, deleting or renaming any `by_asset` file after consumption — or changing any file's date span — invalidates the credit. The same record also stores the **sorted list of non-CSV file names** and `{"present": false}` when the directory is absent, so a directory that appears, or a stray non-CSV file that lands, after consumption invalidates the credit exactly like a CSV change.
   
   Snapshot-less legacy credits are equally invalid. When credit is invalidated, `holdout_read=false` is reported with an invalidation warning regardless of whether exposure was triggered this round.
 - Mark-read write order: **log first, state second**. A crash between the two leaves "log without state", which is fail-closed on the check side, never the reverse.
@@ -76,6 +78,7 @@
 | `run.yaml` → `run.json` | Standard-library-only rule in this repository; YAML is not stdlib. Field semantics are 1:1. |
 | `settings.yaml` holding `holdout_read` → `guard_state.json` + `guard_log.json` | Separation of state and evidence: state can be edited, the log is append-only. State without a log is fail-closed. |
 | `holdout_guard` does not check walk-forward folds / logging | Declared "planned" upstream as well; out of scope here. |
+| Equity date **monotonicity and range coverage** are not enforced | `holdout_guard` takes the min/max date and `research_kit` sorts before use; neither rejects an out-of-order series, nor a series that stops before the holdout start. This is a **declared non-guarantee**, not a validation: consume a monotone, covering series, and treat the absence of a rejection as silence, not approval. The pre-exploration `start` mode keeps its existing semantics — not having reached the holdout is a legitimate state. |
 
 ## 6. CLI and exit codes (`tools/holdout_guard.py`)
 
@@ -87,7 +90,7 @@
 
 All normal output is JSON on stdout; exit 2 carries an `"error"` field, including argparse usage errors and a negative `--min-days`. `--help` is the exception: exit 0, help text on stdout, no error envelope. No input shape may produce a traceback.
 
-## 7. Glossary
+## 7. Glossary (every term below is *proposed* — a lane that uses one must define it in its own report)
 
 - **Calmar (whole-period)**: full-period CAGR ÷ deepest drawdown.
 - **Days beyond X% drawdown**: total days below a prior high by more than X%, plus the longest consecutive run.
@@ -101,3 +104,4 @@ All normal output is JSON on stdout; exit 2 carries an `"error"` field, includin
 
 - Contract version: **v0.1.5** (2026-10-06). Changes must be mirrored in `GUARD_VERSION` / `CONTRACT_VERSION` and in the selftest assertions, which check that this file's title version equals the constant.
 - Every concrete number in this contract (exit-code semantics, `min_days=180`, mark-read refusal conditions, fail-closed variants) is backed by a `selftest` assertion.
+- **2026-11-11 editorial pass** (no field, no exit code, no behavioural change, version unchanged): restored two elements that were lost in the original translation — the non-CSV name list and the `{"present": false}` directory-absent record in the §4 fingerprint, and the "define it in the report" obligation on §7 terms; corrected the §2 `tried_variants` example to a legal value; declared the un-enforced equity-order/coverage in §5. Each of these describes what the code already did (or already did not do), so nothing here needed a version bump.

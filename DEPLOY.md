@@ -78,15 +78,23 @@ python3 tools/research_kit/cli.py check <run_folder>
 python3 tools/research_kit/cli.py selftest     # 96/96 expected
 ```
 
-### Exit codes (uniform across all four tools)
+### Exit codes (**not** uniform — `1` means different things per tool)
 
-| Code | Meaning |
-|---|---|
-| `0` | Ran successfully. Findings (if any) are the product, not an error. |
-| `1` | Gate or selftest failed. |
-| `2` | Input error: missing file, syntax error, invalid argument, malformed run folder. |
+| Command | `0` | `1` | `2` | `3` |
+|---|---|---|---|---|
+| `lint.py check` | ran; findings are the product | — | input error | — |
+| `lint.py gate` / `selftest` | all pass | at least one fail | input error | — |
+| `profiler.py check` | ran; verdicts are the product | — | input error | — |
+| `profiler.py gate` | all pass | at least one fail | input error | gate infrastructure failure |
+| `holdout_guard.py check` | pass | **holdout exposure blocked the load** | structural error | — |
+| `holdout_guard.py mark-read` | recorded | — | refused (repeat consumption, `holdout: null`, bad input) | — |
+| `holdout_guard.py selftest` | all pass | at least one fail | — | — |
+| `research_kit/cli.py check` | ran; verdicts are the product | — | malformed run folder / bad input | — |
+| `research_kit/cli.py selftest` | all pass | at least one fail | — | — |
 
-All output is JSON on **stdout**, including error envelopes. Do not parse stderr; do not expect tracebacks.
+Never treat `1` as "gate failed" without checking which command produced it: for `holdout_guard check`, `1` is a **finding** (the holdout was touched), not a tool malfunction.
+
+Output is JSON on stdout. Two exceptions: `--help` prints plain text (exit 0, no envelope), and argparse usage errors (unknown subcommand, bad flag) are printed to **stderr only** — there is no JSON envelope on that path. No input shape produces a traceback.
 
 ---
 
@@ -111,19 +119,28 @@ jobs:
           python3 tools/profiler.py gate --corpus tests/corpus
           python3 tools/holdout_guard.py selftest
       - name: Lint strategy code
-        run: python3 tools/lint.py check strategies/
+        run: |
+          test -d strategies || { echo "strategies/ not found - point this at your own directory"; exit 1; }
+          python3 tools/lint.py check strategies/ > lint-out.json
+          python3 - <<'PY'
+          import json, sys
+          report = json.load(open("lint-out.json"))
+          # Directory mode returns {"files": [{file, findings, ...}]} - there is no
+          # top-level "findings" key. Reading the wrong level silently passes everything.
+          bad = [(f["file"], x) for f in report["files"] for x in f["findings"]
+                 if x["tier"] == "verified"]
+          for path, x in bad:
+              print(f"{path}: {x['rule']} - {x['evidence']}")
+          sys.exit(1 if bad else 0)
+          PY
 ```
 
-Because `check` exits `0` even when it finds violations (findings are the product), enforce the verdict in a wrapper step:
+`check` exits `0` even when it finds violations (findings are the product), so the wrapper above is what enforces the verdict. Verify the wrapper itself with a positive and a negative control before trusting it:
 
 ```bash
-python3 tools/lint.py check strategies/ > out.json
-python3 - <<'PY'
-import json, sys
-r = json.load(open("out.json"))
-bad = [f for f in r["findings"] if f["tier"] == "verified"]
-sys.exit(1 if bad else 0)
-PY
+# Should exit 0 on clean code, 1 on planted code
+python3 tools/lint.py check tests/corpus/clean/strategies/ > /tmp/c.json
+python3 tools/lint.py check tests/corpus/planted/lint/ > /tmp/p.json
 ```
 
 ---
@@ -148,21 +165,38 @@ Recommended agent contract:
 4. Treat exit `2` as an input problem (wrong path, syntax error), not as a verdict.
 5. Never parse human-readable text; read the JSON.
 
-Write strategy code in a form the linter can actually see. The known blind spots (see `docs/LINT-SPEC.md` §4) are mechanical, not conceptual:
+Write strategy code in a form the linter can actually see. Note that analysis starts **inside function bodies**: a bare module-level assignment is reported as `strategy_like: false` and produces no findings at all (limitation 10 in `docs/LINT-SPEC.md` §4), so the examples below are functions. The `assert` lines are there so `lint.105` (vacuous gates) does not fire and mask the rule under discussion.
 
 ```python
-# ✅ visible to the linter
-df["pnl"] = df["position"] * df["close"].pct_change()
+# ✅ visible to the linter -> lint.101
+def run(df):
+    assert len(df) > 0
+    df["position"] = (df["close"] > df["close"].rolling(20).mean()).astype(int)
+    df["pnl"] = df["position"] * df["close"].pct_change()
+    return df
 
-# ❌ return series via local alias: ret_source is not resolved
-close = df["close"]
-df["pnl"] = df["position"] * close.pct_change()
+# ✅ T+1 lag, wherever it is written -> no findings
+def run(df):
+    assert len(df) > 0
+    df["position"] = (df["close"].shift(1) > df["close"].rolling(20).mean().shift(1)).astype(int)
+    df["pnl"] = df["position"] * df["close"].pct_change()
+    return df
 
-# ❌ pnl assigned to a plain variable: product check does not fire
-pnl = df["position"] * df["close"].pct_change()
+# ❌ return series via local alias: ret_source is not resolved -> missed
+def run(df):
+    assert len(df) > 0
+    close = df["close"]
+    df["pnl"] = df["position"] * close.pct_change()         # no finding
 
-# ❌ position wrapped in .where / .mask before multiplying: name not visible
-df["pnl"] = df["position"].where(cond, 0) * df["close"].pct_change()
+# ❌ pnl assigned to a plain variable: product check does not fire -> missed
+def run(df):
+    assert len(df) > 0
+    pnl = df["position"] * df["close"].pct_change()         # no finding
+
+# ❌ position wrapped in .where / .mask before multiplying: name not visible -> missed
+def run(df, cond):
+    assert len(df) > 0
+    df["pnl"] = df["position"].where(cond, 0) * df["close"].pct_change()   # no finding
 ```
 
 ---
@@ -175,9 +209,10 @@ In the upstream development workflow these are frozen and must not be modified b
 |---|---|
 | `tests/corpus/expected_results.json` | The answer key. Changing it turns the exam into a rubber stamp. |
 | `tests/corpus/**` | Corpus is versioned as a unit; detector changes never edit samples. |
+| `tests/corpus/README.md` | **Declared exception**: this is an English rewrite of the upstream note. It is documentation only — no gate reads it — and it is the single non-generated file in that directory, so it is excluded from the "rebuild changes nothing" rule. |
 | `tools/profiler.py`, `tools/holdout_guard.py` | Frozen between audit gates in the upstream repo. |
 
-If a validator fires on your file and the pattern is not one of the nine documented limitations, **fix the file**. Re-tuning a detector to pass your code is the failure mode this project exists to prevent.
+If a validator fires on your file and the pattern is not one of the ten documented limitations, **fix the file**. Re-tuning a detector to pass your code is the failure mode this project exists to prevent.
 
 ---
 

@@ -48,11 +48,11 @@ A single "quality score" hides where the problem is. These four gates are indepe
 |---|---|---|
 | **Code** | `tools/lint.py` | Does the strategy code violate execution contracts? (AST, before running) |
 | **Data** | `tools/profiler.py` | Is the input data structurally sound? (gaps, duplicates, NaNs, unit drift) |
-| **Runtime** | `tools/holdout_guard.py` | Is the holdout actually held out? (circuit breakers + mirror unit tests) |
+| **Runtime** | `tools/holdout_guard.py` | Is the holdout actually held out? (one-shot consumption, four-way snapshot agreement, per-file fingerprint) |
 | **Statistics** | `tools/research_kit/` | Is the result distinguishable from luck? (the "luck quartet") |
 
 **4. It publishes its own weaknesses.**
-`docs/LINT-SPEC.md` §4 lists nine known limitations — including cases where the linter will *miss* a violation (e.g. when the return series is assigned through a local alias, or when a helper applies `.shift()` inside its `return` expression rather than on it). These are disclosed, not hidden. A guardrail that pretends to be complete is worse than one that tells you where the gaps are.
+`docs/LINT-SPEC.md` §4 lists ten known limitations — including cases where the linter will *miss* a violation (e.g. when the return series is assigned through a local alias, or when a helper applies `.shift()` inside its `return` expression rather than on it). These are disclosed, not hidden. A guardrail that pretends to be complete is worse than one that tells you where the gaps are.
 
 ---
 
@@ -89,7 +89,9 @@ Checks the things that silently corrupt a backtest: calendar gaps, duplicate tim
 
 ### 3. `holdout_guard.py` — runtime circuit breaker
 
-Embedded in the engine. Enforces that the holdout window is touched exactly once, that mirror unit tests pass (buyer P&L = −seller P&L for derivatives), and that settlement arithmetic is asserted at boundary cases (`S_T = 0`, `S_T = K`, `S_T = 2K`).
+Runs before the engine loads data, and refuses the load when the holdout has been touched. It enforces that the holdout window is consumed exactly once, that state and log agree four ways (snapshot = every read event = `run.json` = current equity first/last dates), and that the per-file `by_asset` fingerprint taken at consumption time still matches — any file added, removed, renamed or re-dated afterwards cancels the credit.
+
+Mirror-P&L and settlement-boundary assertions are **not** part of this tool. They belong to the engine's own test suite; a guard that claimed them would be claiming coverage it does not execute.
 
 ```bash
 python3 tools/holdout_guard.py selftest   # 124/124
@@ -139,7 +141,7 @@ A `check` run on a clean strategy prints:
  "caught": false, "rules": [], "lint_version": "0.1.1"}
 ```
 
-Exit codes are stable and scriptable: `0` = ran and the findings are the product, `1` = gate/selftest failed, `2` = bad input (missing file, syntax error). Errors are JSON on stdout, never a traceback.
+Exit codes are stable and scriptable: `0` = ran, and the findings are the product; `1` = gate/selftest failed **or a holdout check blocked the load**; `2` = bad input (missing file, syntax error, bad argument). Meaning of `1` is per-tool — see the table in `DEPLOY.md` §3. Error envelopes are JSON on stdout, with two exceptions: `--help` prints plain text, and argparse usage errors go to stderr only.
 
 ---
 
@@ -179,13 +181,13 @@ No network access, no API keys, no telemetry.
 tools/
   lint.py                 # AST static checker (5 rules)
   profiler.py             # input data health profiler
-  holdout_guard.py        # runtime circuit breaker + mirror tests
+  holdout_guard.py        # runtime holdout circuit breaker (one-shot consumption)
   research_kit/           # DSR haircut, timing shuffle, start-year, search permutation
   build_corpus.py         # deterministic corpus generator (fixed seed)
   reference_detectors.py  # independent reference implementations
 tests/corpus/             # frozen acceptance corpus (38 samples) + answer key
 docs/
-  LINT-SPEC.md            # rule semantics, tiers, and nine known limitations
+  LINT-SPEC.md            # rule semantics, tiers, and ten known limitations
 RUN_FOLDER_CONTRACT.md    # standard handoff format for engines -> research_kit
 DEPLOY.md                 # install, CI, and agent integration
 ```

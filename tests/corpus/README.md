@@ -43,6 +43,8 @@ python3 tools/build_corpus.py
 
 The generator is standard-library only, uses a fixed seed, and is byte-reproducible. A self-check failure aborts the build rather than emitting a partial corpus. Regenerating must not change any file in this directory under the same version; a corpus change is a version bump, not a rebuild.
 
+`expected_results.json` is written by that same run — it is never hand-edited, and it is the file the gates grade against. So the check is mechanical: rebuild into a copy and `diff -r` the two `tests/corpus/` trees; anything but an empty diff is a bug. This README is the only file here that is not generated.
+
 ## Why the corpus comes first
 
 A detector graded against samples written after it exists is a detector graded against its own assumptions. Freezing the exam first inverts the incentive: false negatives and false positives both have somewhere visible to land, and "the detector is right because it agrees with itself" is not available as an argument.

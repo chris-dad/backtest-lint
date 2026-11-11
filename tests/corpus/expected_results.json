@@ -1,7 +1,7 @@
 {
   "corpus_version": "1.2.7",
   "generated": "2026-10-01",
-  "ssot": "this file (answer key); public export",
+  "ssot": "this repository (tests/corpus/expected_results.json)",
   "conventions": {
     "sample_ids": "CLN-### clean | LNT-### planted lint | PRF-### planted profile",
     "neutral_files": "filenames and file contents carry NO rule ids or category hints; the mapping lives only in this file",
