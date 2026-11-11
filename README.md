@@ -65,7 +65,7 @@ Parses strategy source with `ast` and tracks a column-level data-flow graph. No 
 ```bash
 python3 tools/lint.py check strategy.py          # JSON findings
 python3 tools/lint.py gate --corpus tests/corpus # 18/18, exit 0 iff all pass
-python3 tools/lint.py selftest                   # 30/30
+python3 tools/lint.py selftest                   # 31/31
 ```
 
 | Rule | Detects |
@@ -127,7 +127,7 @@ cd backtest-lint
 python3 tools/lint.py check /path/to/your_strategy.py
 
 # Verify the toolchain itself
-python3 tools/lint.py selftest                    # 30/30
+python3 tools/lint.py selftest                    # 31/31
 python3 tools/lint.py gate --corpus tests/corpus  # 18/18
 python3 tools/profiler.py gate --corpus tests/corpus  # 20/20
 python3 tools/holdout_guard.py selftest           # 124/124
@@ -198,7 +198,7 @@ DEPLOY.md                 # install, CI, and agent integration
 
 | Tool | Version | Acceptance |
 |---|---|---|
-| lint | 0.1.2 | 18/18 corpus · 30/30 selftest |
+| lint | 0.1.2 | 18/18 corpus · 31/31 selftest |
 | profiler | 0.7.1 | 20/20 corpus |
 | holdout_guard | 0.1.5 | 124/124 selftest |
 | research_kit | 0.1.2 | 96/96 selftest |

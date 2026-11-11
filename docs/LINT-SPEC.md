@@ -56,10 +56,10 @@ The corpus expects `verified` for all planted defects (they are constructed to b
 ```bash
 python3 tools/lint.py check <file.py|dir>        # JSON findings, exit 0 = normal
 python3 tools/lint.py gate --corpus tests/corpus # 18/18, exit 0 iff all pass
-python3 tools/lint.py selftest                   # 30/30 (27 inline positive/negative
+python3 tools/lint.py selftest                   # 31/31 (27 inline positive/negative
                                                  # probes incl. T+1 lag forms and
                                                  # evidence-content assertions,
-                                                 # + 2 CLI probes + gate control)
+                                                 # + 3 CLI probes + gate control)
 ```
 
 Exit convention: `0` = normal (findings are the product); `1` = gate/selftest failed; `2` = input error (missing file, syntax error, non-`.py`), with an error JSON envelope on stdout and no traceback.
@@ -90,6 +90,6 @@ See `DEPLOY.md` §5 for the three forms that are silently missed (limitations 7 
 |---|---|
 | 0.1.0 | Initial delivery: five rules, 18/18 corpus, 20/20 selftest. |
 | 0.1.1 | Review fixes. **M-1**: lag judgment moved from "shift on the definition suffix" to "every price read protected by `shift(k>=1)`" (`bar_t_cols`), fixing four false-positive T+1 forms and one missed conviction (`position.fillna(0)`). **m-1**: 102 evidence now names only the price columns actually read. `shift(0)` explicitly does not protect; helper lag via `return` suffix is recognised (with transitive local-variable expansion). 30/30 selftest. Limitations 7–9 disclosed after that review. |
-| 0.1.2 | `gate` no longer escapes as a bare traceback on a corpus it cannot read: a corrupt or structurally invalid `expected_results.json` now prints a JSON error envelope on stdout and exits `2` (input error), instead of raising with an empty stdout. Detection rules unchanged; 18/18 corpus, 30/30 selftest. |
+| 0.1.2 | `gate` no longer escapes as a bare traceback on a corpus it cannot read: a corrupt or structurally invalid `expected_results.json` now prints a JSON error envelope on stdout and exits `2` (input error), instead of raising with an empty stdout. Detection rules unchanged; 18/18 corpus, 31/31 selftest. |
 
 This version was reviewed against a written adversarial brief, by a second agent on the same machine under the same owner — a review, not a third-party audit. Where that review found a limit rather than a defect, the limit is recorded in §4 instead of being removed.

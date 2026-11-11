@@ -1176,6 +1176,28 @@ def cmd_selftest(args):
     else:
         n += 1
         failures.append("corpus gate: corpus dir not found")
+    # CLI 反控：读不动的语料 → exit 2 + JSON 错误信封，且不得抛 traceback。
+    # 没有这条，上面那个 except 分支就是"写了但没测"，退回 0.1.2 之前的
+    # 逃逸行为也不会有任何断言变红。
+    import shutil
+    tmpd = Path(tempfile.mkdtemp(prefix="lint-corrupt-"))
+    (tmpd / "expected_results.json").write_text("{", encoding="utf-8")
+    r = subprocess.run(
+        [sys.executable, str(Path(__file__).resolve()), "gate",
+         "--corpus", str(tmpd)],
+        capture_output=True, text=True)
+    n += 1
+    try:
+        env = json.loads(r.stdout) if r.stdout.strip() else {}
+    except json.JSONDecodeError:
+        env = {}
+    if (r.returncode != 2 or "error" not in env
+            or "Traceback" in r.stderr):
+        failures.append(
+            f"corrupt-corpus probe: exit {r.returncode}, "
+            f"stdout={r.stdout[:120]!r}, "
+            f"traceback={'Traceback' in r.stderr}")
+    shutil.rmtree(tmpd, ignore_errors=True)
     ok = not failures
     print(json.dumps({"tool": "lint", "version": VERSION,
                       "command": "selftest", "assertions": n,

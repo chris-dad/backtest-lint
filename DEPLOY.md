@@ -52,7 +52,7 @@ Shell variables are documentation convenience only — no tool reads `BL_ROOT`.
 ```bash
 python3 tools/lint.py check <file.py|dir>      # JSON findings
 python3 tools/lint.py gate --corpus <dir>      # 18/18 expected, exit 0 iff pass
-python3 tools/lint.py selftest                 # 30/30 expected
+python3 tools/lint.py selftest                 # 31/31 expected
 ```
 
 ### `profiler.py`
