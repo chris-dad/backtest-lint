@@ -1,218 +1,36 @@
-# backtest-lint
+# Chris (Cheung Kailun)
 
-**Guardrails for backtests that would otherwise lie to you.**
+**I build the tooling that decides whether a backtest is allowed to be believed.**
 
-A backtest is a claim about the future, assembled from code you wrote yourself and data you chose yourself. That is a structurally unreliable narrator. `backtest-lint` is a set of four independent gates that interrogate that narrator at four different layers — source code, input data, execution runtime, and statistical significance — before any number reaches a report.
+A backtest is a claim about the future, written by me, using data I picked. That is not a reliable narrator. So I stopped polishing the number and started interrogating the narrator — including when the liar turned out to be my own code.
 
-No third-party dependencies for the static checker. No cloud service, no telemetry. Everything runs locally. On the normal path the tools emit JSON; `--help` and usage errors are the exceptions, listed under exit codes in `DEPLOY.md` §3.
+## Three times my own audit turned on me
 
----
+- **My options backtest was 58% too high.** A sign error in cash-settled put assignment had the seller *receiving* the buyer's intrinsic value — value created out of nothing, which violates the zero-sum constraint before you even look at a chart. Fixing it cut the headline result by a third, from `3.06x` to `1.94x` — the reported multiple had been 58% above the corrected one. And 62% of the old ending balance turned out to be coins that never existed. I published the smaller number.
+- **I pre-registered six gates for an improvement to my own strategy, then rejected the improvement.** Four passed. Two failed: a fold count of `3/6` against a `>=4` requirement, and out-of-sample degradation of `19.7%` against an `11.7%` ceiling. 4 out of 6 is not a pass. The shipped baseline stayed untouched, byte for byte.
+- **I turned the missing checks into open tooling — and froze the exam before writing the detectors.** I built a 38-sample acceptance corpus with a fixed answer key, so the tools are graded against the exam instead of the exam being rewritten to suit the tools.
 
-**Start with the case studies** — three post-mortems of real backtests that printed wrong numbers, each reproducible in minutes: [`CASE-STUDIES.md`](CASE-STUDIES.md).
+## Two things to look at
 
----
+**[`backtest-lint`](https://github.com/chris-dad/backtest-lint)** — guardrails for backtests that would otherwise lie to you.
+*The pain it kills:* almost all backtest tooling helps you **compute** a result, and almost none helps you decide whether the result is **allowed to be believed**. Four independent gates — code (AST, before anything runs), data, runtime holdout, and statistics — with `cannot_determine` as a first-class verdict instead of a fake opinion.
 
-## Why this exists
+**[`portfolio-track-record`](https://github.com/chris-dad/portfolio-track-record)** — a fingerprinted monthly record: content hashes, a correction log, and no quiet edits.
+*The pain it kills:* published numbers get silently revised, and nobody can prove what the page said last month. Here, every revision gets a new hash; the superseded version stays on the record.
 
-Most backtest tooling helps you **compute** a result. Very little of it helps you decide whether the result is **allowed to be believed**.
+## Background
 
-The failure modes are not exotic. They are boring, common, and they all inflate returns:
+MSc Financial Economics. In crypto since 2014 — long enough to have run mining rigs and long enough to have watched "obviously correct" models die in public.
 
-| Failure | What it looks like | Typical cost |
-|---|---|---|
-| Same-bar execution | `position[t]` built from `close[t]`, multiplied by `close[t]/close[t-1]` | Turns a mediocre strategy into a spectacular one |
-| Look-ahead | Signal computed on bar `t` close, filled at bar `t` open | Free money that never existed |
-| Centered window | `rolling(20, center=True)` — the window sees 10 bars into the future | Smooth equity curve, fake alpha |
-| Future data leak | `shift(-5)`, `iloc[-1]` normalization, tail-window statistics | Every bar knows the ending price |
-| Vacuous tests | No assertions, all assertions commented out, `assert True` | Nobody ever checked anything |
-| Search-optimal luck | The best of 200 parameter combinations, reported as if it were the only one tried | The entire result may be noise |
+## What I am looking for
 
-Every one of these is a **code-level** or **data-level** defect, which means it can be caught mechanically — before the backtest runs, and before the number is written into a deck.
+Model validation and research governance roles — places where the job is to disbelieve a model on schedule and write down why. Also open to quant dev / crypto research roles where the same reflex is useful.
 
----
+## Contact
 
-## What makes it different
-
-**1. The exam precedes the candidate.**
-The acceptance corpus (`tests/corpus/`, 38 samples: 20 data-quality + 18 code) was written and frozen *before* the detectors existed. Each sample carries an expected verdict in `expected_results.json`. Detectors are graded against a fixed answer key, not the other way round. If a detector fails, the detector gets fixed — the exam does not get edited.
-
-**2. It refuses to fake certainty.**
-Every finding carries a tier:
-
-- `verified` — the pattern itself is a contract violation. Deterministic statement about the code.
-- `suspicious` — the pattern is a strong signal but context-dependent.
-- `cannot_determine` — not enough information. The tools say so instead of inventing a verdict.
-
-`cannot_determine` is a first-class outcome, not an error. A tool that always has an opinion is a tool you cannot trust.
-
-**3. Four layers, not one score.**
-A single "quality score" hides where the problem is. These four gates are independent and composable:
-
-| Layer | Tool | Question it answers |
-|---|---|---|
-| **Code** | `tools/lint.py` | Does the strategy code violate execution contracts? (AST, before running) |
-| **Data** | `tools/profiler.py` | Is the input data structurally sound? (gaps, duplicates, NaNs, unit drift) |
-| **Runtime** | `tools/holdout_guard.py` | Is the holdout actually held out? (one-shot consumption, four-way snapshot agreement, per-file fingerprint) |
-| **Statistics** | `tools/research_kit/` | Is the result distinguishable from luck? (the "luck quartet") |
-
-**4. It publishes its own weaknesses.**
-`docs/LINT-SPEC.md` §4 lists ten known limitations — including cases where the linter will *miss* a violation (e.g. when the return series is assigned through a local alias, or when a helper applies `.shift()` inside its `return` expression rather than on it). These are disclosed, not hidden. A guardrail that pretends to be complete is worse than one that tells you where the gaps are.
+Open an issue on any repository here — it reaches me directly, and it's the fastest channel.
+Email available on request.
 
 ---
 
-## The four gates
-
-### 1. `lint.py` — static analysis (no dependencies, stdlib only)
-
-Parses strategy source with `ast` and tracks a column-level data-flow graph. No execution, no imports, no pandas required.
-
-```bash
-python3 tools/lint.py check strategy.py          # JSON findings
-python3 tools/lint.py gate --corpus tests/corpus # 18/18, exit 0 iff all pass
-python3 tools/lint.py selftest                   # 32/32
-```
-
-| Rule | Detects |
-|---|---|
-| `lint.101` | Same-bar execution — position built from bar-`t` information × bar-`t` close-to-close return |
-| `lint.102` | Look-ahead — unlagged position × open-to-open return |
-| `lint.103` | Centered rolling window (`center=True`), including `**kwargs` passthrough and `.apply` forms |
-| `lint.104` | Future data leak — negative `shift`, terminal scalar (`[-1]`), tail-window statistics |
-| `lint.105` | Vacuous gates — zero effective assertions |
-
-**The lag rule follows execution timing, not syntax.** A position is treated as T+1 clean when every price read that feeds it is protected by `shift(k>=1)` — wherever that shift is written: on both sides inside a comparison, on a helper's `return` suffix, or inside a `np.where` argument. `shift(0)` is an explicit identity and does *not* protect.
-
-### 2. `profiler.py` — input data health
-
-```bash
-python3 tools/profiler.py check prices.csv
-python3 tools/profiler.py gate --corpus tests/corpus   # 20/20
-```
-
-Checks the things that silently corrupt a backtest: calendar gaps, duplicate timestamps, NaN runs, unit/scale drift, stale prices, and metadata mismatches. Emits per-check verdicts with the same three-tier vocabulary.
-
-### 3. `holdout_guard.py` — runtime circuit breaker
-
-Runs before the engine loads data, and refuses the load when the holdout has been touched. It enforces that the holdout window is consumed exactly once, that state and log agree four ways (snapshot = every read event = `run.json` = current equity first/last dates), and that the per-file `by_asset` fingerprint taken at consumption time still matches — any file added, removed, renamed or re-dated afterwards cancels the credit.
-
-Mirror-P&L and settlement-boundary assertions are **not** part of this tool. They belong to the engine's own test suite; a guard that claimed them would be claiming coverage it does not execute.
-
-```bash
-python3 tools/holdout_guard.py selftest   # 124/124
-```
-
-### 4. `research_kit/` — the luck quartet
-
-Given a standardized run folder (see `RUN_FOLDER_CONTRACT.md`), four independent statistical tests:
-
-| Test | Question |
-|---|---|
-| **DSR haircut** | After accounting for how many variants were tried, is the Sharpe ratio still positive? (Bailey & López de Prado) |
-| **Timing shuffle** | Does the strategy beat randomly reshuffled entry/exit timing on the same asset? |
-| **Start-from-each-year** | Does starting in any single year produce a catastrophic result? |
-| **Search permutation** | Does the best configuration beat the distribution of *search* outcomes under a null with the same rules? |
-
-```bash
-python3 tools/research_kit/cli.py check <run_folder>
-python3 tools/research_kit/cli.py selftest   # 96/96
-```
-
-The search-permutation test is the one that matters most, and the one most often skipped: it simulates the *entire search process* under the null, so "I found a good parameter set" is compared against "how good does the best parameter set look when there is nothing there?"
-
----
-
-## Quick start
-
-```bash
-git clone https://github.com/chris-dad/backtest-lint.git
-cd backtest-lint
-
-# Static check any strategy file — no install, no dependencies
-python3 tools/lint.py check /path/to/your_strategy.py
-
-# Verify the toolchain itself
-python3 tools/lint.py selftest                    # 32/32
-python3 tools/lint.py gate --corpus tests/corpus  # 18/18
-python3 tools/profiler.py gate --corpus tests/corpus  # 20/20
-python3 tools/holdout_guard.py selftest           # 124/124
-python3 tools/research_kit/cli.py selftest        # 96/96
-```
-
-A `check` run on a clean strategy prints:
-
-```json
-{"file": "strategy.py", "strategy_like": true, "findings": [],
- "caught": false, "rules": [], "lint_version": "0.1.3"}
-```
-
-Exit codes are stable and scriptable: `0` = ran, and the findings are the product; `1` = gate/selftest failed **or a holdout check blocked the load**; `2` = bad input (missing file, syntax error, bad argument); `3` = a gate hit an internal error while grading a corpus it had already accepted. Meaning of `1` is per-tool — see the table in `DEPLOY.md` §3. Error envelopes are JSON on stdout, with two exceptions: `--help` prints plain text (all four tools, exit `0`), and argparse usage errors are stderr-only in `lint`/`profiler` but also emit a JSON envelope on stdout in `guard`/`research_kit` — so do not parse stdout unconditionally on a non-zero exit.
-
----
-
-## Design principles
-
-- **Mechanical over judgmental.** If a check cannot be made deterministic, it is `suspicious`, not `verified`.
-- **Frozen exams.** Detector changes never touch `tests/corpus/`. The answer key is immutable within a corpus version.
-- **No silent passes.** Every tool reports what it looked at, what it skipped, and why.
-- **Machine-readable by default.** On the normal path every CLI emits a JSON envelope, so the tools can be driven by CI, by an agent, or by another tool. `--help` and usage errors are the exceptions — check the exit code before parsing stdout (`DEPLOY.md` §3).
-- **Disclose the gaps.** Ten known limitations are documented in `docs/LINT-SPEC.md` §4, including asymmetric ones that make the tool look weaker.
-
----
-
-## Non-goals
-
-- **Not a backtest engine.** It does not price trades, model margin, or generate signals.
-- **Not a performance report generator.** It audits claims; it does not manufacture them.
-- **Not a strategy library.** No signals, no parameters, no alpha — deliberately.
-- **Not exhaustive.** It catches the failures that can be proven statically or structurally. Semantic bugs inside a correct-looking pattern remain your problem.
-
----
-
-## Requirements
-
-| Component | Requirement |
-|---|---|
-| `lint.py`, `profiler.py`, `holdout_guard.py`, `build_corpus.py` | Python ≥ 3.9, standard library only |
-| `research_kit/` | Python ≥ 3.9 + `pandas` (see `requirements.txt`) |
-
-No network access, no API keys, no telemetry.
-
----
-
-## Repository layout
-
-```
-tools/
-  lint.py                 # AST static checker (5 rules)
-  profiler.py             # input data health profiler
-  holdout_guard.py        # runtime holdout circuit breaker (one-shot consumption)
-  research_kit/           # DSR haircut, timing shuffle, start-year, search permutation
-  build_corpus.py         # deterministic corpus generator (fixed seed)
-  reference_detectors.py  # independent reference implementations
-tests/corpus/             # frozen acceptance corpus (38 samples) + answer key
-docs/
-  LINT-SPEC.md            # rule semantics, tiers, and ten known limitations
-RUN_FOLDER_CONTRACT.md    # standard handoff format for engines -> research_kit
-DEPLOY.md                 # install, CI, and agent integration
-```
-
----
-
-## Status
-
-| Tool | Version | Acceptance |
-|---|---|---|
-| lint | 0.1.3 | 18/18 corpus · 32/32 selftest |
-| profiler | 0.7.1 | 20/20 corpus |
-| holdout_guard | 0.1.5 | 124/124 selftest |
-| research_kit | 0.1.2 | 96/96 selftest |
-
-**No audit claim.** The code was reviewed against a written adversarial brief by a second agent on the same machine under the same owner — a review, not a third-party audit. The brief asked for every number to be re-derived from raw evidence and a negative control behind each positive claim; nothing was to be certified that the reviewer could not reproduce.
-
-What survives is visible rather than asserted here: fixes sit in the commit history, and the detection limits the tools still have are listed in `docs/LINT-SPEC.md` §4 rather than left for you to discover.
-
----
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+*None of this is a third-party audit. A second agent on the same machine, under the same owner, reviewed the code against a written adversarial brief — a review, not a certification. What survives is visible rather than merely asserted: fixes are in the commit history, and the detectors' known limitations are documented in `docs/LINT-SPEC.md` §4 instead of being left for you to find.*
