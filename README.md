@@ -1,4 +1,4 @@
-# Chris (Cheung Kailun)
+# Chris (Cheung Kai lun)
 
 **I build the tooling that decides whether a backtest is allowed to be believed.**
 
@@ -33,4 +33,4 @@ Email available on request.
 
 ---
 
-*None of this is a third-party audit. A second agent on the same machine, under the same owner, reviewed the code against a written adversarial brief — a review, not a certification. What survives is visible rather than merely asserted: fixes are in the commit history, and the detectors' known limitations are documented in `docs/LINT-SPEC.md` §4 instead of being left for you to find.*
+*None of this is a third-party audit. A second agent on the same machine, under the same owner, reviewed the code against a written adversarial brief — a review, not a certification. What survives is visible rather than merely asserted: fixes are in the commit history, and the detectors' known limitations are documented in `docs/LINT-SPEC.md` §4 instead of being left for you to find.
